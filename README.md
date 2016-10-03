@@ -13,7 +13,7 @@ To build the tool under Windows you'll need TDM-GCC-32 (GCC 5.1.0), CMake (>= 3.
 Collection of Python scripts to convert, dump and verify TibiCAM (.rec) and TibiaReplay (.trp) files.
 
 ##### convert
-[convert.py](tools/convert.py) converts one or multiple TibiCAM files to TibiaReplay files. It can also correct damaged files. This script **does** support encrypted TibiCAM files (thanks to many hours in IDA Pro, sorry how2doit and haktivex). How the encryption (and decryption) of TibiCAM files work is probably what most of you reading this wants to know, so go ahead and read the file `tools/lib/recording.py` (line 183 - 241).
+[convert.py](tools/convert.py) converts one or multiple TibiCAM files to TibiaReplay files. It can also correct damaged files. This script **does** support encrypted TibiCAM files (thanks to many hours in IDA Pro, sorry how2doit and haktivex). How the encryption (and decryption) of TibiCAM files work is probably what most of you reading this wants to know, so go ahead and read the file [tools/libs/recording.py](tools/libs/recording.py) (line 183 - 241).
 
 ##### dump
 [dump.py](tools/dump.py) (decrypts) and dumps a TibiCAM or TibiaReplay file. The output is similar to `hexdump -C` but with additional information for each packet. Example output:
