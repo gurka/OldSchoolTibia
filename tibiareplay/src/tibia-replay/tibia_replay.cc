@@ -3,7 +3,7 @@
 #include <psapi.h>
 
 // Path to the DLL to inject (hint: replace this string to reflect your location of the code/dll)
-static char dllName[] = "libtibia-proxy-dll.dll";
+static char dllName[] = "libtibia-replay-dll.dll";
 
 DWORD findTibiaPid()
 {
