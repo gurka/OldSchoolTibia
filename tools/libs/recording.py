@@ -1,4 +1,6 @@
+from datetime import date, datetime
 import os
+import re
 import zlib
 from Crypto.Cipher import AES
 
@@ -98,6 +100,80 @@ class Recording:
         self.packets = corrected_packets
 
 
+    def guess_version(self):
+        # Updates
+        updates = [
+            (date(2002,  8, 28), 700),
+            (date(2002, 10, 22), 701),
+            (date(2002, 11, 21), 702),
+            (date(2002, 12, 17), 710),
+            (date(2003,  7, 27), 711),
+            (date(2003, 12, 16), 720),
+            (date(2004,  1, 21), 721),
+            (date(2004,  3,  9), 723), # test server client
+            (date(2004,  3, 14), 724),
+            (date(2004,  5,  4), 726),
+            (date(2004,  7, 22), 727),
+            (date(2004,  8, 11), 730),
+            (date(2004, 12, 10), 735), # test server client
+            (date(2004, 12, 14), 740),
+            (date(2005,  7,  7), 741),
+            (date(2005,  8,  9), 750),
+            (date(2005, 11, 16), 755),
+            (date(2005, 12, 12), 760),
+            (date(2006,  5,  5), 761), # test server client
+            (date(2006,  5, 17), 770),
+            (date(2006,  5, 31), 771),
+            (date(2006,  6,  8), 772),
+            (date(2006,  8,  1), 780),
+            (date(2006,  8, 29), 781),
+            (date(2006, 10, 13), 782),
+            (date(2006, 12, 12), 790),
+            (date(2007,  1,  8), 792),
+            (date(2007,  6, 26), 800),
+            (date(2007, 12, 11), 810),
+        ]
+
+        # Compile regex
+        regex = re.compile(r'Your last visit in Tibia: (\d+)\. (\S{3}) (\d{4})')
+
+        # Try to find the login message, which should be in the first packet
+        packet = self.packets[0]
+        packet_length = packet.data[0] | packet.data[1] << 8
+        if packet_length != len(packet.data) - 2:
+            raise Exception(f'packet_length = {packet_length} != len(packet.data) - 2 = {len(packet.data) - 2}')
+
+        for i in range(0, len(packet.data) - 4):
+            # Versions earlier than 7.26 has 0xb4 0x13 login message, 7.26 and later has 0xb4 0x14
+            if packet.data[i] == 0xb4 and (packet.data[i + 1] == 0x13 or packet.data[i + 1] == 0x14):
+                # Possibly a text message
+                try:
+                    text_length = packet.data[i + 2] | packet.data[i + 3] << 8
+                    if text_length > 255:
+                        continue
+
+                    # Extract, decode and match against regex
+                    text = packet.data[i + 4:i + 4 + text_length].decode('ascii')
+                    m = regex.search(text)
+                    if m is None:
+                        continue
+                except:
+                    # ignore
+                    continue
+
+                # Parse date
+                d = datetime.strptime(f'{m.group(3)}-{m.group(2)}-{m.group(1)}', '%Y-%b-%d').date()
+
+                # Guess version
+                for vi in range(1, len(updates) - 1):
+                    version_date, _ = updates[vi]
+                    if version_date > d:
+                        _, version = updates[vi - 1]
+                        return version
+
+        return None
+
+
 class InvalidFileException(Exception):
     pass
 
@@ -140,9 +216,9 @@ def load_rec(filename, force=False):
 
             try:
                 if rec.version == 259:
-                    p.length = utils.read_u32(f)
+                    packet_length = utils.read_u32(f)
                 else:
-                    p.length = utils.read_u16(f)
+                    packet_length = utils.read_u16(f)
             except Exception as e:
                 if force:
                     # Return the Recording anyway
@@ -150,8 +226,8 @@ def load_rec(filename, force=False):
                 else:
                     raise e
 
-            if p.length <= 0:
-                raise InvalidFileException("'{}': Invalid p.length: {} for packet number: {}".format(filename, p.length, i))
+            if packet_length <= 0:
+                raise InvalidFileException("'{}': Invalid packet_length: {} for packet number: {}".format(filename, packet_length, i))
 
             try:
                 p.time = utils.read_u32(f)
@@ -162,8 +238,8 @@ def load_rec(filename, force=False):
                 else:
                     raise e
 
-            p.data = f.read(p.length)
-            if len(p.data) != p.length:
+            p.data = f.read(packet_length)
+            if len(p.data) != packet_length:
                 if force:
                     # Return the Recording anyway
                     break
@@ -178,13 +254,14 @@ def load_rec(filename, force=False):
                 read_checksum = utils.read_u32(f)
                 if calculated_checksum != read_checksum:
                     raise InvalidFileException("'{}': Invalid checksum (calculated: 0x{:08X} read: 0x{:08X})".format(filename,
+                                                                                                                     calculated_checksum,
                                                                                                                      read_checksum))
 
                 # Decrypt packet data
                 decrypted_data = b''
 
                 # Different key for each packet
-                key = (p.length + p.time) & 0xFF
+                key = (packet_length + p.time) & 0xFF
 
                 # Decrypt each byte
                 for i, byte in enumerate(p.data):
@@ -211,7 +288,7 @@ def load_rec(filename, force=False):
                     encrypted_data = decrypted_data
                     decrypted_data = b''
 
-                    aes = AES.new(b'\x54\x68\x79\x20\x6B\x65\x79\x20\x69\x73\x20\x6D\x69\x6E\x65\x20\xA9\x20\x32\x30\x30\x36\x20\x47\x42\x20\x4D\x6F\x6E\x61\x63\x6F')
+                    aes = AES.new(b'\x54\x68\x79\x20\x6B\x65\x79\x20\x69\x73\x20\x6D\x69\x6E\x65\x20\xA9\x20\x32\x30\x30\x36\x20\x47\x42\x20\x4D\x6F\x6E\x61\x63\x6F', AES.MODE_ECB)
 
                     # The packet needs to be divisible by 16
                     if len(encrypted_data) % 16 != 0:
@@ -283,13 +360,13 @@ def load_trp(filename):
             if p.time < 0 or p.time > r.length:
                 raise InvalidFileException("'{}': Invalid p.time: {}".format(filename, p.time))
 
-            p.length = utils.read_u16(f)
+            packet_length = utils.read_u16(f)
 
-            if p.length <= 0:
-                raise InvalidFileException("'{}': Invalid p.length: {}".format(filename, p.length))
+            if packet_length <= 0:
+                raise InvalidFileException("'{}': Invalid packet_length: {}".format(filename, packet_length))
 
-            p.data = f.read(p.length)
-            if len(p.data) != p.length:
+            p.data = f.read(packet_length)
+            if len(p.data) != packet_length:
                 raise InvalidFileException("'{}': Unexpected end-of-file".format(filename))
 
             r.packets.append(p)
