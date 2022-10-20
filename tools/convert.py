@@ -16,7 +16,7 @@ if __name__ == '__main__':
     force = args.force
     correct = args.correct
     subfolder = args.subfolder
-    version = args.VERSION if 'VERSION' in args else None
+    version = args.version
     output_dir = args.OUTPUT_DIR
     filenames = args.FILE
 

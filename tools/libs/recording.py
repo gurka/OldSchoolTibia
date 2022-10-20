@@ -144,8 +144,10 @@ class Recording:
             raise Exception(f'packet_length = {packet_length} != len(packet.data) - 2 = {len(packet.data) - 2}')
 
         for i in range(0, len(packet.data) - 4):
-            # Versions earlier than 7.26 has 0xb4 0x13 login message, 7.26 and later has 0xb4 0x14
-            if packet.data[i] == 0xb4 and (packet.data[i + 1] == 0x13 or packet.data[i + 1] == 0x14):
+            # Version 7.1 has 0xb4 0x11
+            # Version 7.2 has 0xb4 0x13
+            # Version 7.26 and later has 0xb4 0x14
+            if packet.data[i] == 0xb4 and packet.data[i + 1] in (0x11, 0x13, 0x14):
                 # Possibly a text message
                 try:
                     text_length = packet.data[i + 2] | packet.data[i + 3] << 8
