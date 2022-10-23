@@ -77,6 +77,10 @@ if __name__ == '__main__':
     filenames = args.FILE
 
     for filename in filenames:
+        if filename.endswith('.rec'):
+            print("ERROR: convert the file to .trp first")
+            continue
+
         strings = get_all_strings(filename)
 
         # Remove all strings shorter than min_len
