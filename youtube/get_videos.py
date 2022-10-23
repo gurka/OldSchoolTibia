@@ -1,6 +1,7 @@
 import os
 import json
 import re
+import sys
 
 import googleapiclient.discovery
 
@@ -70,12 +71,26 @@ def main():
             elif sub_title.endswith('.rec'):
                 filename = sub_title
             else:
-                videos[video_id] = dict(
-                    title=title,
-                    version=version,
-                    error=f'no original filename',
+                # Do another request, in case the filename has been
+                # added but search index not updated yet
+                request2 = youtube.videos().list(
+                    part='snippet',
+                    id=video_id,
                 )
-                continue
+                response2 = request2.execute()
+                item2 = response2['items'][0]
+                snippet2 = item2['snippet']
+                m2 = description_regex.search(snippet2['description'])
+                if m2 is not None:
+                    filename = m2.group(1)
+                else:
+                    videos[video_id] = dict(
+                        title=title,
+                        version=version,
+                        error=f'no original filename',
+                    )
+                    print(json.dumps(item, indent=4))
+                    continue
 
 
             videos[video_id] = dict(
@@ -90,7 +105,7 @@ def main():
         i += 1
         next_page_token = response['nextPageToken']
 
-    print(json.dumps(videos, indent=4))
+    #print(json.dumps(videos, indent=4))
     with open('videos.json', 'w') as f:
         f.write(json.dumps(videos))
         f.write('\n')
