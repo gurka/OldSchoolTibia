@@ -23,31 +23,28 @@ def main():
     i = 0
     next_page_token = None
     while True:
-        request = youtube.search().list(
+        request = youtube.playlistItems().list(
             part='snippet',
-            channelId='UCLvAMwZjm9aUUeJ-wVDMG7A',
-            type='video',
+            playlistId='UULvAMwZjm9aUUeJ-wVDMG7A',
             maxResults=50,
-            pageToken=next_page_token
+            pageToken=next_page_token,
         )
         response = request.execute()
+
+        videos_saved = len(videos)
+        response_items = len(response['items'])
+        total_results = response['pageInfo']['totalResults']
+        results_per_page = response['pageInfo']['resultsPerPage']
+        print(f'Videos saved: {videos_saved}, items in response: {response_items}, total results: {total_results}, results per page: {results_per_page}')
+
         items = response['items']
         for item in items:
-            if 'videoId' not in item['id']:
-                print('ERROR: found entry without videoId, skipping')
-                continue
-
-            video_id = item['id']['videoId']
+            snippet = item['snippet']
+            video_id = snippet['resourceId']['videoId']
 
             if video_id in videos:
-                #print(f'WARN: skipping duplicate video (in iteration {i})')
+                print(f'WARN: skipping duplicate video (in iteration {i})')
                 continue
-
-            if item['id']['kind'] != 'youtube#video':
-                videos[video_id] = dict(error=f'unexpected type: {item["id"]["kind"]}')
-                continue
-
-            snippet = item['snippet']
 
             # Get and match title
             title = snippet['title']
@@ -92,11 +89,13 @@ def main():
                     print(json.dumps(item, indent=4))
                     continue
 
+            # Split filename if it's something like 'foo" & "bar'
+            filenames = [filename.replace('"', '') for filename in filename.split(' & ')]
 
             videos[video_id] = dict(
                 title=title,
                 version=version,
-                filename=filename,
+                filenames=filenames,
             )
 
         if 'nextPageToken' not in response or next_page_token == response['nextPageToken']:
@@ -105,10 +104,28 @@ def main():
         i += 1
         next_page_token = response['nextPageToken']
 
-    #print(json.dumps(videos, indent=4))
+    videos_saved = len(videos)
+    print(f'Videos saved: {videos_saved}')
+
+    print('Writing videos.json')
     with open('videos.json', 'w') as f:
         f.write(json.dumps(videos))
         f.write('\n')
+
+    print('Writing videos.csv')
+    with open('videos.csv', 'w') as f:
+        for video_id in videos:
+            video = videos[video_id]
+
+            title = video.get('title', '')
+            version = video.get('version', '')
+            filenames = video.get('filenames', '')
+            error = video.get('error', '')
+
+            for filename in filenames:
+                # filename must be first for VLOOKUP in Google Sheets to work
+                f.write(f'{filename}\t{video_id}\t{title}\t{version}\t{error}\n')
+
 
 
 if __name__ == '__main__':
