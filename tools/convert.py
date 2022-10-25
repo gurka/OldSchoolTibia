@@ -5,23 +5,26 @@ from libs import recording
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument("-f", "--force", help="do not skip file with unexpected end-of-file", action='store_true')
-    parser.add_argument("-s", "--subfolder", help="place the output file(s) in sub-folders according to their version", action='store_true')
-    parser.add_argument("-v", "--version", help="output files will have this Tibia version set. If not set, convert.py will try to auto detect the version", type=int)
-    parser.add_argument("OUTPUT_DIR", help="output files will be placed in this directory")
+    parser.add_argument("-f", "--force", help="do not skip file with unexpected end-of-file.", action='store_true')
+    parser.add_argument("-s", "--subfolder", help="place the output file(s) in sub-folders according to their version.", action='store_true')
+    parser.add_argument("-v", "--version", help="use this version if no version was automatically detected. To always set the given version, use -o/--overwrite.", type=int, required=True)
+    parser.add_argument("-o", "--overwrite", help="always use the version provided with -v/--version, even if a version was automatically detected.", action='store_true')
+    parser.add_argument("OUTPUT_DIR", help="output files will be placed in this directory.")
     parser.add_argument("FILE", help="file(s) to convert", nargs='+')
     args = parser.parse_args()
 
     force = args.force
     subfolder = args.subfolder
     version = args.version
+    overwrite = args.overwrite
     output_dir = args.OUTPUT_DIR
     filenames = args.FILE
 
     print("Converting with the following options:")
     print("\tforce      = {}".format(force))
     print("\tsubfolder  = {}".format(subfolder))
-    print("\tversion    = {}".format("autodetect" if version is None else version))
+    print("\tversion    = {}".format(version))
+    print("\toverwrite  = {}".format(overwrite))
     print("\tOUTPUT_DIR = {}".format(output_dir))
 
     if not os.path.isdir(output_dir):
@@ -32,30 +35,26 @@ if __name__ == '__main__':
         (_,filename) = os.path.split(full_filename)
 
         if not filename:
-            print("Invalid file: '{}'".format(full_filename))
+            print("'{}': invalid file".format(full_filename))
             continue
 
         if not filename.lower().endswith('.rec') and not filename.lower().endswith('.trp'):
-            print("Error: Can not parse input file '{}'".format(full_filename))
+            print("'{}': can not parse file".format(full_filename))
             continue
 
         try:
             r = recording.load(full_filename, force)
         except Exception as e:
-            print("Could not read file: '{}': {}".format(full_filename, e))
+            print("'{}': could not read file: {}".format(full_filename, e))
             continue
 
-        if version is None:
-            detected_version = r.guess_version()
-            if detected_version is None:
-                print("Could not auto-detect version: '{}'".format(full_filename))
-                continue
-
-        version_to_set = detected_version if version is None else version
+        # Overwrite recording version if overwrite set, or if recording version is unset (could not auto detect version)
+        if overwrite or r.version is None:
+            r.version = version
 
         output_filename = filename[:-3] + 'trp'
         if subfolder:
-            tmp = str(version_to_set)
+            tmp = str(r.version)
             subfolder_dir = os.path.join(output_dir, tmp[0] + '.' + tmp[1:])
             if not os.path.isdir(subfolder_dir):
                 print("'{}' does not exist, creating directory.".format(subfolder_dir))
@@ -65,12 +64,12 @@ if __name__ == '__main__':
             output = os.path.join(output_dir, output_filename)
 
         if os.path.isfile(output):
-            print("Output file '{}' already exists.".format(output))
+            print("'{}': file already exists.".format(output))
             continue
 
         try:
-            recording.save(r, output, version_to_set)
-            print("Wrote file '{}' with version {}".format(output, version_to_set))
+            recording.save(r, output)
+            print("'{}': wrote file with version {}".format(output, r.version))
         except Exception as e:
-            print("Could not write file '{}': {}".format(output, e))
+            print("'{}': could not write file: {}".format(output, e))
             raise e

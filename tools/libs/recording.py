@@ -396,21 +396,21 @@ def load(filename, force=False):
         raise InvalidFileException("'{}': Unsupported file".format(filename))
 
 
-def save(recording, filename, version):
+def save(recording, filename):
     """Saves a Tibia recording using the Tibia Replay format
+
+    Note that version must be set in recording, otherwise this
+    function will raise an exception.
 
     Arguments:
         recording: The recording to save.
         filename: The filename to write to.
-        version: The version of the recording, or None to guess version.
     """
     if os.path.isfile(filename):
         raise Exception("File: '{}' already exist".format(filename))
 
-    if version is None:
-        version = recording.guess_version()
-        if version is None:
-            raise Exception("File: '{}', could not guess version".format(filename))
+    if recording.version is None:
+        raise Exception("File: '{}', recording.version is None".format(filename))
 
     with open(filename, 'wb') as f:
 
@@ -418,7 +418,7 @@ def save(recording, filename, version):
         f.write(b'TRP\0')
 
         # Recording info
-        utils.write_u16(f, version)
+        utils.write_u16(f, recording.version)
         utils.write_u32(f, recording.length)
         utils.write_u32(f, len(recording.frames))
 
