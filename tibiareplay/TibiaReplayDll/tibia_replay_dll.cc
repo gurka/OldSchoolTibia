@@ -701,7 +701,7 @@ void handleGameConnection(TibiaConnection* connection, InPacket* loginPacket)
       }
 
       // Print progress
-      float percent = 100.0f - (100.0f * (static_cast<float>(replay.getNumberOfPacketsLeft()) / static_cast<float>(replay.getNumberOfPackets())));
+      float percent = 100.0f - (100.0f * (static_cast<float>(replay.getNumberOfFramesLeft()) / static_cast<float>(replay.getNumberOfFrames())));
       console.progressBar(percent);
     }
 

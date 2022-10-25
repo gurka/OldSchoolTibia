@@ -92,7 +92,7 @@ bool Replay::load(const std::string& filename)
 
   // Read magic string
   const auto* magic = fr.getBytes(4);
-  if (strncmp(magic, "TRP", 4) != 0)
+  if (memcmp(magic, "TRP\0", 4) != 0)
   {
     loadError_ = "Magic string is not correct";
     return false;
@@ -105,7 +105,7 @@ bool Replay::load(const std::string& filename)
   auto numberOfFrames = fr.getU32();
 
   // Read all frames
-  for (auto i = 0u; i < numberOfFrames i++)
+  for (auto i = 0u; i < numberOfFrames; i++)
   {
     auto frameTime = fr.getU32();
     auto frameDataLength = fr.getU16();
