@@ -7,21 +7,21 @@
 
 #include "packet.h"
 
-class ReplayPacket
+class Frame
 {
  public:
-  ReplayPacket(const OutPacket& packet, uint32_t packetTime)
-    : packet_(packet),
-      packetTime_(packetTime)
+  Frame(uint32_t time, const std::uint8_t* data, std::size_t dataLength)
+    : time_(time),
+      data_(data, dataLength)
   {
   }
 
-  const OutPacket& getPacket() const { return packet_; }
-  uint32_t getPacketTime() const { return packetTime_; }
+  uint32_t getTime() const { return time_; }
+  const OutPacket& getData() const { return data_; }
 
  private:
-  const OutPacket packet_;
-  const uint32_t packetTime_;
+  const uint32_t time_;
+  const OutPacket data_;
 };
 
 class Replay
@@ -34,17 +34,17 @@ class Replay
   // Replay functions
   uint16_t getVersion() const { return version_; }
   uint32_t getLength() const { return length_; }
-  std::size_t getNumberOfPackets() const { return packets_.size(); }
-  std::size_t getNumberOfPacketsLeft() const { return packets_.size() - nextPacketIndex_; }
-  const ReplayPacket& getNextPacket();
+  std::size_t getNumberOfFrames() const { return frames_.size(); }
+  std::size_t getNumberOfFramesLeft() const { return frames_.size() - nextFrameIndex_; }
+  const Frame& getNextFrame();
 
  private:
   std::string loadError_;
 
   uint16_t version_;
   uint32_t length_;
-  std::vector<ReplayPacket> packets_;
-  std::size_t nextPacketIndex_;
+  std::vector<Frame> frames_;
+  std::size_t nextFrameIndex_;
 };
 
 #endif  // REPLAY_READER_H_

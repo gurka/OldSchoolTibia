@@ -609,14 +609,14 @@ void handleGameConnection(TibiaConnection* connection, InPacket* loginPacket)
     // Replay the selected .rec-file
     console.write("Replaying file: '%s'\n", filename.c_str());
     console.write("  Length: %s (%ums)\n", getLengthString(replay.getLength()).c_str(), replay.getLength());
-    console.write("  Number of packets: %u\n", replay.getNumberOfPackets());
+    console.write("  Number of frames: %u\n", replay.getNumberOfFrames());
 
     // Playback speed, can be changed by user via newSpeed variable
     uint32_t speed = 1;
 
-    // Play recording, send first packet
-    const auto& replayPacket = replay.getNextPacket();
-    connection->write(replayPacket.getPacket().getBuffer(), replayPacket.getPacket().getLength());
+    // Play recording, send first frame
+    const auto& frame = replay.getNextFrame();
+    connection->send(frame.getData());
 
     // Wait for Tibia client to login
     Sleep(1000);
@@ -643,7 +643,7 @@ void handleGameConnection(TibiaConnection* connection, InPacket* loginPacket)
     // Set start time here, to avoid problems due to the Sleep()s above
     auto startTime = getFakeTime(speed);
 
-    while (replay.getNumberOfPacketsLeft() > 0 && !quitReplay && !nextReplay)
+    while (replay.getNumberOfFramesLeft() > 0 && !quitReplay && !nextReplay)
     {
       // Check if replay is paused
       if (speed == 0)
@@ -654,23 +654,23 @@ void handleGameConnection(TibiaConnection* connection, InPacket* loginPacket)
         continue;
       }
 
-      // Get next packet
-      const auto& replayPacket = replay.getNextPacket();
+      // Get next frame
+      const auto& frame = replay.getNextFrame();
 
-      // Calculate when to send this replayPacket to the client
+      // Calculate when to send this frame to the client
       const auto currentTime = getFakeTime(speed);
       const auto elapsedTime = currentTime - startTime;
-      if (elapsedTime < replayPacket.getPacketTime())
+      if (elapsedTime < frame.getTime())
       {
-        const auto timeUntilNextPacket = replayPacket.getPacketTime() - elapsedTime;
+        const auto timeUntilNextFrame = frame.getTime() - elapsedTime;
 
         // Adjust for current speed
-        const auto timeToSleep = timeUntilNextPacket / speed;
+        const auto timeToSleep = timeUntilNextFrame / speed;
         Sleep(timeToSleep);
       }
 
-      // Send packet
-      connection->write(replayPacket.getPacket().getBuffer(), replayPacket.getPacket().getLength());
+      // Send frame
+      connection->send(frame.getData());
 
       // Check if new speed is wanted
       if (newSpeed != speed)

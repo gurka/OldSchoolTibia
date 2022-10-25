@@ -78,8 +78,8 @@ bool Replay::load(const std::string& filename)
   // Clear information about any previosuly opened Replay
   version_ = 0;
   length_ = 0;
-  packets_.clear();
-  nextPacketIndex_ = 0;
+  frames_.clear();
+  nextFrameIndex_ = 0;
 
   FileReader fr;
 
@@ -90,36 +90,36 @@ bool Replay::load(const std::string& filename)
     return false;
   }
 
-  // Read magic number
-  auto magic = fr.getU16();
-  if (magic != 0x1337)  // .trp
+  // Read magic string
+  const auto* magic = fr.getBytes(4);
+  if (strncmp(magic, "TRP", 4) != 0)
   {
-    loadError_ = "Magic number is not correct";
+    loadError_ = "Magic string is not correct";
     return false;
   }
 
   version_ = fr.getU16();
   length_ = fr.getU32();
 
-  // Read number of replay packets
-  auto numberOfPackets = fr.getU32();
+  // Read number of frames
+  auto numberOfFrames = fr.getU32();
 
-  // Read all replay packets
-  for (auto i = 0u; i < numberOfPackets; i++)
+  // Read all frames
+  for (auto i = 0u; i < numberOfFrames i++)
   {
-    auto packetTime = fr.getU32();
-    auto packetDataLength = fr.getU16();
-    const auto* packetData = fr.getBytes(packetDataLength);
+    auto frameTime = fr.getU32();
+    auto frameDataLength = fr.getU16();
+    const auto* frameData = fr.getBytes(frameDataLength);
 
-    packets_.emplace_back(OutPacket(packetData, packetDataLength), packetTime);
+    frames_.emplace_back(frameTime, frameData, frameDataLength);
   }
 
   return true;
 }
 
-const ReplayPacket& Replay::getNextPacket()
+const Frame& Replay::getNextFrame()
 {
-  const auto& packet = packets_[nextPacketIndex_];
-  nextPacketIndex_++;
-  return packet;
+  const auto& frame = frames_[nextFrameIndex_];
+  nextFrameIndex_++;
+  return frame;
 }
