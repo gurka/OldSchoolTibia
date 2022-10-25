@@ -3,7 +3,7 @@
 #include <psapi.h>
 
 // Path to the DLL to inject (hint: replace this string to reflect your location of the code/dll)
-static char dllName[] = "libtibia-replay-dll.dll";
+static char dllName[] = "TibiaReplayDll.dll";
 
 DWORD findTibiaPid()
 {
@@ -31,7 +31,7 @@ DWORD findTibiaPid()
     HMODULE tempModule;
     if (EnumProcessModules(tempHandle, &tempModule, sizeof(tempModule), &temp))
     {
-      TCHAR szProcessName[MAX_PATH];
+      char szProcessName[MAX_PATH];
       GetModuleBaseName(tempHandle, tempModule, szProcessName, sizeof(szProcessName) / sizeof(TCHAR));
       if (strcmp("Tibia.exe", szProcessName) == 0)
       {
@@ -59,7 +59,12 @@ bool injectDLL(DWORD pid)
   }
 
   // Get the address to the function LoadLibraryA in kernel32.dll
-  LPVOID LoadLibAddr = (LPVOID)GetProcAddress(GetModuleHandleA("kernel32.dll"), "LoadLibraryA");
+  HMODULE kernel32Handle = GetModuleHandle("kernel32.dll");
+  if (kernel32Handle == NULL)
+  {
+    return false;
+  }
+  FARPROC LoadLibAddr = GetProcAddress(kernel32Handle, "LoadLibraryA");
   if (LoadLibAddr == NULL)
   {
     return false;

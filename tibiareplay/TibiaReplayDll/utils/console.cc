@@ -27,7 +27,7 @@ bool Console::init(const std::string& title)
   consoleInfo.dwSize.Y = 400;
   SetConsoleScreenBufferSize(consoleHandle_, consoleInfo.dwSize);
 
-  SetConsoleTitleA(title.c_str());
+  SetConsoleTitle(title.c_str());
 
   return true;
 }
@@ -48,7 +48,7 @@ void Console::write(const char* format, ...)
     vsnprintf(message, sizeof(message), format, args);
     va_end(args);
 
-    WriteConsoleA(consoleHandle_, message, strlen(message), nullptr, nullptr);
+    WriteConsole(consoleHandle_, message, static_cast<DWORD>(strlen(message)), nullptr, nullptr);
   }
 }
 
@@ -60,6 +60,6 @@ void Console::progressBar(float percent)
 
     snprintf(message, sizeof(message), "\r> %5.2f%% <", percent);
 
-    WriteConsoleA(consoleHandle_, message, strlen(message), nullptr, nullptr);
+    WriteConsole(consoleHandle_, message, static_cast<DWORD>(strlen(message)), nullptr, nullptr);
   }
 }

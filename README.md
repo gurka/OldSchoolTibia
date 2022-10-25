@@ -5,9 +5,9 @@ This is a collection of tools and scripts that were used (and still are being us
 See [LICENSE](LICENSE).
 
 ### TibiaReplay
-TibiaReplay is a tool to play TibiaReplay (.trp) files using the real Tibia client. It has additional features to automate the process of recording the client using a screen recorder such as Open Broadcaster Software (OBS). It currently supports Tibia version 7.00 - 7.92.
+TibiaReplay is a tool to play TibiaReplay (.trp) files using the real Tibia client. It has additional features to automate the process of recording the client using a screen recorder such as Open Broadcaster Software (OBS). Note that currently OBS Classic is required. It currently supports Tibia version 7.00 - 7.92.
 
-To build the tool under Windows you'll need TDM-GCC-32 (GCC 5.1.0), CMake (>= 3.0), GMP (libgmp) and a healthy Bash environment (TDM-GCC and CMake in $PATH). The tool is built as an DLL which are injected to the Tibia client using a DLL injector (which can be built as well).
+To build the tool under Windows you'll need Visual Studio 2022 with Visual C++. The tool is built as a DLL which are injected to the Tibia client using a DLL injector (which can be built as well).
 
 ### Tools
 Collection of Python scripts to convert, dump and verify TibiCAM (.rec) and TibiaReplay (.trp) files.

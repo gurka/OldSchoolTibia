@@ -112,7 +112,7 @@ class OutPacket
 
   void addString(const std::string& str)
   {
-    addU16(str.length());
+    addU16(static_cast<uint16_t>(str.length()));
     buffer_.insert(buffer_.end(), str.begin(), str.end());
   }
 
@@ -121,7 +121,7 @@ class OutPacket
     buffer_.insert(buffer_.end(), num, 0x33);
   }
 
-  std::size_t getLength() const { return buffer_.size(); }
+  uint16_t getLength() const { return static_cast<uint16_t>(buffer_.size()); }
   const uint8_t* getBuffer() const { return &buffer_[0]; }
 
   uint8_t* getBuffer() { return &buffer_[0]; }

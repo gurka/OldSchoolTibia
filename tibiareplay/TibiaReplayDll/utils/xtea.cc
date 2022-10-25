@@ -18,7 +18,7 @@ bool XTEA::encrypt(uint8_t* buffer, uint16_t length)
   auto* temp = (uint32_t*)(buffer);
 
   std::size_t pos = 0;
-  while (pos < (length / 4))
+  while (pos < (length / 4u))
   {
     uint32_t v0 = temp[pos];
     uint32_t v1 = temp[pos + 1];
@@ -53,7 +53,7 @@ bool XTEA::decrypt(uint8_t* buffer, uint16_t length)
   auto* temp = (uint32_t*)(buffer);
 
   std::size_t pos = 0;
-  while (pos < (length / 4))
+  while (pos < (length / 4u))
   {
     uint32_t v0 = temp[pos];
     uint32_t v1 = temp[pos + 1];

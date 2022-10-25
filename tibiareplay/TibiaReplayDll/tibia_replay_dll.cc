@@ -131,7 +131,11 @@ void tibiaReplay()
     else if (type == 0x0A)
     {
       // Set minimum timer resolution
-      timeBeginPeriod(1);
+      if (timeBeginPeriod(1) != TIMERR_NOERROR)
+      {
+        console.write("Unable to set minimum timer resolution!\n");
+        return;
+      }
 
       handleGameConnection(&connection, &loginPacket);
 
@@ -188,7 +192,7 @@ bool writeTibiaServerAddresses()
   // Init console
   if (!console.init("Tibia Replay"))
   {
-    OutputDebugStringA("Could not initialize console, aborting!");
+    OutputDebugString("Could not initialize console, aborting!");
     return false;
   }
   console.write("Tibia Replay DLL injected!\n");
@@ -211,10 +215,11 @@ bool writeTibiaServerAddresses()
   DWORD dwNewProtect;
   for (const auto& address : tibiaServerAddresses[tibiaVersion])
   {
-    auto realAddress = tibiaHandle + address;
-    VirtualProtect((PVOID)realAddress, 4, PAGE_READWRITE, &dwOldProtect);
-    strcpy((char*)realAddress, "localhost");
-    VirtualProtect((PVOID)realAddress, 4, dwOldProtect, &dwNewProtect);
+    const auto address_len = strlen("localhost");
+    const auto realAddress = tibiaHandle + address;
+    VirtualProtect((LPVOID)realAddress, address_len + 1, PAGE_READWRITE, &dwOldProtect);
+    strcpy_s(reinterpret_cast<char*>(realAddress), address_len + 1, "localhost");
+    VirtualProtect((LPVOID)realAddress, address_len + 1, dwOldProtect, &dwNewProtect);
   }
   console.write("done!\n");
 
@@ -228,11 +233,11 @@ bool writeTibiaServerAddresses()
 
     console.write("Replacing Tibia RSA key with our RSA key... ");
 
-    auto rsa_public_len = strlen(rsa_public);
-    auto realAddress = tibiaHandle + tibiaRsaKeyAddress[tibiaVersion];
-    VirtualProtect((PVOID)realAddress, rsa_public_len, PAGE_READWRITE, &dwOldProtect);
-    strcpy((char*)realAddress, rsa_public);
-    VirtualProtect((PVOID)realAddress, rsa_public_len, dwOldProtect, &dwNewProtect);
+    const auto rsa_public_len = strlen(rsa_public);
+    const auto realAddress = tibiaHandle + tibiaRsaKeyAddress[tibiaVersion];
+    VirtualProtect((LPVOID)realAddress, rsa_public_len + 1, PAGE_READWRITE, &dwOldProtect);
+    strcpy_s(reinterpret_cast<char*>(realAddress), rsa_public_len + 1, rsa_public);
+    VirtualProtect((LPVOID)realAddress, rsa_public_len + 1, dwOldProtect, &dwNewProtect);
 
     console.write("done!\n");
 
@@ -345,9 +350,9 @@ void handleLoginConnection(TibiaConnection* connection, InPacket* loginPacket)
   if (recFilenames.empty())
   {
     // Get files in current working directory
-    recFilenames = FileUtils::getFilenamesInDirectory(FileUtils::getCurrentWorkingDirectory() + "/replay/");
+    recFilenames = FileUtils::getFilenamesInDirectory(FileUtils::getCurrentWorkingDirectory());
 
-    // Remove files without .cam extension
+    // Remove files without .trp extension
     const std::string extension = ".trp";
     auto predicate = [&extension](const std::string& filename)
     {
@@ -400,7 +405,7 @@ void handleLoginConnection(TibiaConnection* connection, InPacket* loginPacket)
   outPacket.addU8(0x64);
 
   // Number of characters (.rec files)
-  outPacket.addU8(recFilenames.size());
+  outPacket.addU8(static_cast<uint8_t>(recFilenames.size()));
 
   // Add real filenames
   for (const auto& filename : recFilenames)
@@ -593,17 +598,33 @@ void handleGameConnection(TibiaConnection* connection, InPacket* loginPacket)
     quitReplay = false;
 
     // Open file
-    if (!replay.load("replay/" + filename))
+    if (!replay.load(filename))
     {
       console.write("Could not open file '%s': %s\n", filename.c_str(), replay.getErrorStr().c_str());
-      return;
+      OutPacket packet;
+      packet.addU8(0x14);
+      packet.addString(replay.getErrorStr());
+      connection->send(packet);
+      break;
     }
 
     // Verify version
     if (replay.getVersion() != tibiaVersion)
     {
-      console.write("Replay file '%s' is version %u, but Tibia is version %u", replay.getVersion(), tibiaVersion);
-      return;
+      // Allow but warn about different minor version (e.g. 7.70 vs 7.72)
+      if (replay.getVersion() / 100 == tibiaVersion / 100)
+      {
+        console.write("Warning: replay version is %u, Tibia version is %u, continuing...\n", replay.getVersion(), tibiaVersion);
+      }
+      else
+      {
+        console.write("Replay file '%s' is version %u, but Tibia is version %u", filename.c_str(), replay.getVersion(), tibiaVersion);
+        OutPacket packet;
+        packet.addU8(0x14);
+        packet.addString("Replay file is version " + std::to_string(replay.getVersion()) + ", but Tibia version is " + std::to_string(tibiaVersion));
+        connection->send(packet);
+        break;
+      }
     }
 
     // Replay the selected .rec-file
@@ -625,7 +646,7 @@ void handleGameConnection(TibiaConnection* connection, InPacket* loginPacket)
     if (!Obs::startRecording())
     {
       console.write("WARNING: Could not start recording!\n");
-      break;
+      //break;
     }
     Sleep(1000);
 
@@ -705,7 +726,7 @@ void handleGameConnection(TibiaConnection* connection, InPacket* loginPacket)
     if (!Obs::stopRecording())
     {
       console.write("WARNING: Could not stop recording!\n");
-      break;
+      //break;
     }
     Sleep(5000);
   }
