@@ -601,14 +601,30 @@ void handleGameConnection(TibiaConnection* connection, InPacket* loginPacket)
     if (!replay.load(filename))
     {
       console.write("Could not open file '%s': %s\n", filename.c_str(), replay.getErrorStr().c_str());
-      return;
+      OutPacket packet;
+      packet.addU8(0x14);
+      packet.addString(replay.getErrorStr());
+      connection->send(packet);
+      break;
     }
 
     // Verify version
     if (replay.getVersion() != tibiaVersion)
     {
-      console.write("Replay file '%s' is version %u, but Tibia is version %u", replay.getVersion(), tibiaVersion);
-      return;
+      // Allow but warn about different minor version (e.g. 7.70 vs 7.72)
+      if (replay.getVersion() / 100 == tibiaVersion / 100)
+      {
+        console.write("Warning: replay version is %u, Tibia version is %u, continuing...\n", replay.getVersion(), tibiaVersion);
+      }
+      else
+      {
+        console.write("Replay file '%s' is version %u, but Tibia is version %u", filename.c_str(), replay.getVersion(), tibiaVersion);
+        OutPacket packet;
+        packet.addU8(0x14);
+        packet.addString("Replay file is version " + std::to_string(replay.getVersion()) + ", but Tibia version is " + std::to_string(tibiaVersion));
+        connection->send(packet);
+        break;
+      }
     }
 
     // Replay the selected .rec-file
@@ -630,7 +646,7 @@ void handleGameConnection(TibiaConnection* connection, InPacket* loginPacket)
     if (!Obs::startRecording())
     {
       console.write("WARNING: Could not start recording!\n");
-      break;
+      //break;
     }
     Sleep(1000);
 
@@ -710,7 +726,7 @@ void handleGameConnection(TibiaConnection* connection, InPacket* loginPacket)
     if (!Obs::stopRecording())
     {
       console.write("WARNING: Could not stop recording!\n");
-      break;
+      //break;
     }
     Sleep(5000);
   }

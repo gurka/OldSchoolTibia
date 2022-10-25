@@ -111,6 +111,14 @@ bool Replay::load(const std::string& filename)
     auto packetDataLength = fr.getU16();
     const auto* packetData = fr.getBytes(packetDataLength);
 
+    if (version_ >= 770) {
+      const auto packetLength = packetData[0] | (packetData[1] << 8);
+      if (packetLength != packetDataLength) {
+        loadError_ = "Packet " + std::to_string(i + 1) + " length does match data length (" + std::to_string(packetLength) + " vs " + std::to_string(packetDataLength) + ")";
+        return false;
+      }
+    }
+
     packets_.emplace_back(OutPacket(packetData, packetDataLength), packetTime);
   }
 
