@@ -7,18 +7,12 @@ from Crypto.Cipher import AES
 from libs import utils
 
 
-class Packet:
-    """Represents one packet in a recording.
-
-    This is a bad name, since on of these "packets" actually can
-    contain multiple Tibia packets.
-
-    The data can be encrypted, depending on the file and version
-    used to load this recording.
+class Frame:
+    """Represents one frame in a Tibia recording.
 
     Attributes:
-        time: The time when this packet was received while recording this recording.
-        data: The packet data.
+        time: The time in milliseconds when this data was received while recording this recording.
+        data: The frame data. Contains one or more Tibia packets, without the 2 byte header (data length).
     """
 
     def __init__(self):
@@ -32,72 +26,13 @@ class Recording:
     Attributes:
         version: The Tibia version used to record this recording.
         length: The length of this recording in milliseconds.
-        packets: A list of Packets.
+        frames: A list of Frames.
     """
 
     def __init__(self):
         self.version = 0
         self.length = 0
-        self.packets = []
-
-
-    def correct_packets(self):
-        """Attempts to correct the packets in this recording.
-
-        There are two special cases for recording-packets:
-
-        1. One Tibia-packet is spread over multiple recording-packets.
-           If the "length" value (the two first bytes) of a packet
-           is greater than the length of the recording-packet, then
-           it's spread over multiple recording-packets.
-
-           This case is handled by this function.
-
-        2. One recording-packet consists of multiple Tibia-packets
-           They share the same "length" value (the two first bytes)
-           so there are no way separate them, unless you are able
-           to parse all types of Tibia-packets.
-
-           This case is not handled by this function.
-
-        """
-
-        # Put together all recording-packet's data into one large list
-        recording_packets_data = b''.join([ packet.data for packet in self.packets ])
-
-        # And a list with recording-packet's time for each byte
-        recording_packets_time = []
-        for packet in self.packets:
-            recording_packets_time.extend([ packet.time ] * len(packet.data))
-
-        corrected_packets = []
-        index = 0
-        while index < len(recording_packets_data):
-
-            # Read next packet's length
-            packet_length = int.from_bytes(
-                recording_packets_data[index : index + 2],
-                byteorder='little',
-                signed=False
-            )
-
-            # Create corrected packet
-            p = Packet()
-
-            # Use time from where the packet started
-            p.time = recording_packets_time[index]
-
-            # Extract data (keep length bytes)
-            p.data = recording_packets_data[index : index + 2 + packet_length]
-
-            # Insert corrected packet
-            corrected_packets.append(p)
-
-            # Jump to next packet
-            index += 2 + packet_length
-
-        # Set corrected packets
-        self.packets = corrected_packets
+        self.frames = []
 
 
     def guess_version(self):
@@ -137,25 +72,21 @@ class Recording:
         # Compile regex
         regex = re.compile(r'Your last visit in Tibia: (\d+)\. (\S{3}) (\d{4})')
 
-        # Try to find the login message, which should be in the first packet
-        packet = self.packets[0]
-        packet_length = packet.data[0] | packet.data[1] << 8
-        if packet_length != len(packet.data) - 2:
-            raise Exception(f'packet_length = {packet_length} != len(packet.data) - 2 = {len(packet.data) - 2}')
-
-        for i in range(0, len(packet.data) - 4):
+        # Try to find the login message, which should be in the first frame
+        frame = self.frames[0]
+        for i in range(0, len(frame.data) - 4):
             # Version 7.1 has 0xb4 0x11
             # Version 7.2 has 0xb4 0x13
             # Version 7.26 and later has 0xb4 0x14
-            if packet.data[i] == 0xb4 and packet.data[i + 1] in (0x11, 0x13, 0x14):
+            if frame.data[i] == 0xb4 and frame.data[i + 1] in (0x11, 0x13, 0x14):
                 # Possibly a text message
                 try:
-                    text_length = packet.data[i + 2] | packet.data[i + 3] << 8
+                    text_length = frame.data[i + 2] | frame.data[i + 3] << 8
                     if text_length > 255:
                         continue
 
                     # Extract, decode and match against regex
-                    text = packet.data[i + 4:i + 4 + text_length].decode('ascii')
+                    text = frame.data[i + 4:i + 4 + text_length].decode('ascii')
                     m = regex.search(text)
                     if m is None:
                         continue
@@ -202,25 +133,26 @@ def load_rec(filename, force=False):
         # 515 = 7.30 - 7.60
         # 516 = 7.70
         # 517 = 7.70 - 7.90
+        # 518 = TODO
         # (TibiCAM reads the two values separately, but whatever...)
         rec.version = utils.read_u16(f)
 
         if rec.version not in (259, 515, 516, 517):
             raise InvalidFileException("'{}': Unsupported version: {}".format(filename, rec.version))
 
-        no_packets = utils.read_u32(f)
+        no_frames = utils.read_u32(f)
         if rec.version in (515, 516, 517):
-            no_packets -= 57  # wtf
+            no_frames -= 57  # wtf
 
-        # Read each packet
-        for i in range(no_packets):
-            p = Packet()
+        # Read each frame
+        for i in range(no_frames):
+            frame = Frame()
 
             try:
                 if rec.version == 259:
-                    packet_length = utils.read_u32(f)
+                    frame_length = utils.read_u32(f)
                 else:
-                    packet_length = utils.read_u16(f)
+                    frame_length = utils.read_u16(f)
             except Exception as e:
                 if force:
                     # Return the Recording anyway
@@ -228,11 +160,11 @@ def load_rec(filename, force=False):
                 else:
                     raise e
 
-            if packet_length <= 0:
-                raise InvalidFileException("'{}': Invalid packet_length: {} for packet number: {}".format(filename, packet_length, i))
+            if frame_length <= 0:
+                raise InvalidFileException("'{}': Invalid frame_length: {} for frame number: {}".format(filename, frame_length, i))
 
             try:
-                p.time = utils.read_u32(f)
+                frame.time = utils.read_u32(f)
             except Exception as e:
                 if force:
                     # Return the Recording anyway
@@ -240,8 +172,8 @@ def load_rec(filename, force=False):
                 else:
                     raise e
 
-            p.data = f.read(packet_length)
-            if len(p.data) != packet_length:
+            frame.data = f.read(frame_length)
+            if len(frame.data) != frame_length:
                 if force:
                     # Return the Recording anyway
                     break
@@ -252,21 +184,21 @@ def load_rec(filename, force=False):
             if rec.version in (515, 516, 517):
 
                 # Verify checksum
-                calculated_checksum = zlib.adler32(p.data, 1)
+                calculated_checksum = zlib.adler32(frame.data, 1)
                 read_checksum = utils.read_u32(f)
                 if calculated_checksum != read_checksum:
                     raise InvalidFileException("'{}': Invalid checksum (calculated: 0x{:08X} read: 0x{:08X})".format(filename,
                                                                                                                      calculated_checksum,
                                                                                                                      read_checksum))
 
-                # Decrypt packet data
+                # Decrypt frame data
                 decrypted_data = b''
 
-                # Different key for each packet
-                key = (packet_length + p.time) & 0xFF
+                # Different key for each frame
+                key = (frame_length + frame.time) & 0xFF
 
                 # Decrypt each byte
-                for i, byte in enumerate(p.data):
+                for i, byte in enumerate(frame.data):
 
                     minus = (key + 33 * i + 2) & 0xFF
 
@@ -292,9 +224,9 @@ def load_rec(filename, force=False):
 
                     aes = AES.new(b'\x54\x68\x79\x20\x6B\x65\x79\x20\x69\x73\x20\x6D\x69\x6E\x65\x20\xA9\x20\x32\x30\x30\x36\x20\x47\x42\x20\x4D\x6F\x6E\x61\x63\x6F', AES.MODE_ECB)
 
-                    # The packet needs to be divisible by 16
+                    # The frame data length needs to be divisible by 16
                     if len(encrypted_data) % 16 != 0:
-                        raise InvalidFileException("'{}': File version 517, but packet is not divisible by 16".format(filename))
+                        raise InvalidFileException("'{}': File version 517, but frame data length is not divisible by 16".format(filename))
 
                     # Decrypt each block (of 16 bytes)
                     for block in range(len(encrypted_data) // 16):
@@ -303,7 +235,7 @@ def load_rec(filename, force=False):
 
                     # Check and verify padding
                     # The value used for padding also denotes how many padding bytes there are
-                    # Example: A packet with real length 11 will need 5 padding bytes of value 0x05
+                    # Example: A frame with real data length 11 will need 5 padding bytes of value 0x05
 
                     # Get the last byte of the data, which is also the number of padding bytes
                     no_padding = decrypted_data[-1]
@@ -315,19 +247,70 @@ def load_rec(filename, force=False):
 
                     decrypted_data = decrypted_data[:-no_padding]
 
-                p.data = decrypted_data
+                frame.data = decrypted_data
 
-            rec.packets.append(p)
+            rec.frames.append(f)
 
-        # Fix packet times (first packet should start at time = 0)
-        if rec.packets[0].time != 0:
-            diff = rec.packets[0].time
+        # Fix frame times (first frame should start at time = 0)
+        if rec.frames[0].time != 0:
+            diff = rec.frames[0].time
 
-            for packet in rec.packets:
-                packet.time -= diff
+            for frame in rec.frames:
+                frame.time -= diff
 
-        # Set recording's total time ( = last packet's time)
-        rec.length = rec.packets[-1].time
+        # Set recording's total time ( = last frame's time)
+        rec.length = rec.frames[-1].time
+
+    # Now, merge frames that contain a single Tibia packet
+    # i.e. where the Tibia packet length is greater than the frame data length
+    #
+    # Examples:
+    #
+    # Frame 1:
+    #   data length = 8
+    #   data: 0x06 0x00 [...]
+    #
+    # This frame is OK since the frame length (8) is equal to the Tibia packet length (2 + 6)
+    #
+    # Frame 2:
+    #   data length = 8
+    #   data: 0x10 0x00 [...]
+    #
+    # This frame can be merged with frame 3 (and possible more), since the frame length is 8
+    # but the Tibia packet length is 18 (2 + 16).
+
+    # Put together all recording-packet's data into one large list
+    recording_frames_data = b''.join([ frame.data for frame in rec.frames ])
+
+    # And a list with recording-frame's time for each byte
+    recording_frames_time = []
+    for frame in rec.frames:
+        recording_frames_time.extend([ frame.time ] * len(frame.data))
+
+    corrected_frames = []
+    index = 0
+    while index < len(recording_frames_data):
+
+        # Read next Tibia packet's length
+        packet_length = recording_frames_data[index] | recording_frames_data[index + 1] << 8
+
+        # Create corrected frame
+        frame = Frame()
+
+        # Use time from where the frame started
+        frame.time = recording_frames_time[index]
+
+        # Extract data (but skip Tibia packet length bytes)
+        frame.data = recording_frames_data[index + 2 : index + 2 + packet_length]
+
+        # Insert corrected frame
+        corrected_frames.append(f)
+
+        # Jump to next Tibia packet
+        index += 2 + packet_length
+
+    # Set corrected frames
+    rec.frames = corrected_frames
 
     return rec
 
@@ -340,40 +323,38 @@ def load_trp(filename):
     Arguments:
         filename: The filename of the Tibia Replay file.
     """
-    r = Recording()
+    rec = Recording()
 
     with open(filename, 'rb') as f:
-        magic = utils.read_u16(f)
-        if magic != 0x1337:
+        magic = f.read(4)
+        if magic != b'TRP\0':
             raise InvalidFileException("'{}' has invalid magic: {}".format(filename, magic))
 
-        r.version = utils.read_u16(f)
-        r.length = utils.read_u32(f)
-        r.packets = []
+        rec.version = utils.read_u16(f)
+        rec.length = utils.read_u32(f)
+        rec.frames = []
 
-        no_packets = utils.read_u32(f)
+        no_frames = utils.read_u32(f)
 
-        # Read each packet
-        for i in range(no_packets):
-            p = Packet()
+        # Read each frame
+        for i in range(no_frames):
+            frame = Frame()
 
-            p.time = utils.read_u32(f)
+            frame.time = utils.read_u32(f)
+            if frame.time < 0 or frame.time > rec.length:
+                raise InvalidFileException("'{}': Invalid frame.time: {}".format(filename, frame.time))
 
-            if p.time < 0 or p.time > r.length:
-                raise InvalidFileException("'{}': Invalid p.time: {}".format(filename, p.time))
+            frame_length = utils.read_u16(f)
+            if frame_length <= 0:
+                raise InvalidFileException("'{}': Invalid frame_length: {}".format(filename, frame_length))
 
-            packet_length = utils.read_u16(f)
-
-            if packet_length <= 0:
-                raise InvalidFileException("'{}': Invalid packet_length: {}".format(filename, packet_length))
-
-            p.data = f.read(packet_length)
-            if len(p.data) != packet_length:
+            frame.data = f.read(frame_length)
+            if len(frame.data) != frame_length:
                 raise InvalidFileException("'{}': Unexpected end-of-file".format(filename))
 
-            r.packets.append(p)
+            rec.frames.append(frame)
 
-    return r
+    return rec
 
 
 def load(filename, force=False):
@@ -407,22 +388,27 @@ def save(recording, filename, version):
     Arguments:
         recording: The recording to save.
         filename: The filename to write to.
-        version: The version of the recording.
+        version: The version of the recording, or None to guess version.
     """
     if os.path.isfile(filename):
         raise Exception("File: '{}' already exist".format(filename))
 
+    if version is None:
+        version = recording.guess_version()
+        if version is None:
+            raise Exception("File: '{}', could not guess version".format(filename))
+
     with open(filename, 'wb') as f:
 
         # Magic
-        utils.write_u16(f, 0x1337)
+        f.write(b'TRP\0')
 
         # Recording info
         utils.write_u16(f, version)
         utils.write_u32(f, recording.length)
-        utils.write_u32(f, len(recording.packets))
+        utils.write_u32(f, len(recording.frames))
 
-        for p in recording.packets:
-            utils.write_u32(f, p.time)
-            utils.write_u16(f, len(p.data))
-            f.write(p.data)
+        for frame in recording.frames:
+            utils.write_u32(f, frame.time)
+            utils.write_u16(f, len(frame.data))
+            f.write(frame.data)

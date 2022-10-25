@@ -1,0 +1,38 @@
+=======================
+.trp file format change
+=======================
+
+Old format:
+
+  2 bytes: Magic value (0x1337)
+  2 bytes: Tibia version
+  4 bytes: Recording length in milliseconds
+  4 bytes: Number of recording packets (n)
+  n recording packets:
+    4 bytes: Recording packet time in milliseconds
+    2 bytes: Length of packet (m)
+    m bytes: Packet data (including the 2 byte Tibia packet length)
+
+The format was changed since, if the recording has been "corrected" then the
+length of a packet (m) is always equal to the Tibia packet length minus 2.
+This means that we waste 2 bytes per recording packet, and also makes playback
+of version >7.7 more complex to implement due to XTEA encryption.
+
+New format:
+
+  4 bytes: Magic value ('T', 'R', 'P', '\0')
+  2 bytes: Tibia version
+  4 bytes: Recording length in milliseconds
+  4 bytes: Number of frames (n)
+  n frames:
+    4 bytes: Frame time in milliseconds
+    2 bytes: Length of frame data (m)
+    m bytes: Frame data (without the 2 byte Tibia packet length)
+
+Note that this require the recording to be "corrected", which now will happen
+automatically when a .rec file is loaded.
+
+Also note that the name "Recording packet" has changed to "Frame", to avoid
+confusion between a recording packet and a Tibia packet.
+
+As this is an internal tool, no backwards compatibility is implemented.

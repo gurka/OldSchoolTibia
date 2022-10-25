@@ -4,13 +4,11 @@ from libs import recording, utils
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument("-f", "--full", help="dump all packets", action='store_true')
-    parser.add_argument("-c", "--correct", help="correct packets in the recording(s)", action='store_true')
+    parser.add_argument("-f", "--full", help="dump all frames", action='store_true')
     parser.add_argument("FILE", help="file(s) to convert", nargs='+')
     args = parser.parse_args()
 
     full = args.full
-    correct = args.correct
     filenames = args.FILE
 
     for filename in filenames:
@@ -24,16 +22,13 @@ if __name__ == '__main__':
                 print(e)
                 continue
 
-        if correct:
-            r.correct_packets()
-
-        print("'{}': Version: {} Length: {}ms Number of packets: {}".format(filename,
-                                                                            r.version,
-                                                                            r.length,
-                                                                            len(r.packets)))
+        print("'{}': Version: {} Length: {}ms Number of frames: {}".format(filename,
+                                                                           r.version,
+                                                                           r.length,
+                                                                           len(r.frames)))
 
         if full:
-            for i, packet in enumerate(r.packets):
-                print("'{}': Packet: {} Time: {} Length: {}".format(filename, i, packet.time, len(packet.data)))
-                utils.print_bytes(packet.data)
+            for i, frame in enumerate(r.frames):
+                print("'{}': Frame: {} Time: {} Length: {}".format(filename, i, frame.time, len(frame.data)))
+                utils.print_bytes(frame.data)
 

@@ -6,7 +6,6 @@ from libs import recording
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("-f", "--force", help="do not skip file with unexpected end-of-file", action='store_true')
-    parser.add_argument("-c", "--correct", help="correct packets in the recording(s)", action='store_true')
     parser.add_argument("-s", "--subfolder", help="place the output file(s) in sub-folders according to their version", action='store_true')
     parser.add_argument("-v", "--version", help="output files will have this Tibia version set. If not set, convert.py will try to auto detect the version", type=int)
     parser.add_argument("OUTPUT_DIR", help="output files will be placed in this directory")
@@ -14,7 +13,6 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     force = args.force
-    correct = args.correct
     subfolder = args.subfolder
     version = args.version
     output_dir = args.OUTPUT_DIR
@@ -22,7 +20,6 @@ if __name__ == '__main__':
 
     print("Converting with the following options:")
     print("\tforce      = {}".format(force))
-    print("\tcorrect    = {}".format(correct))
     print("\tsubfolder  = {}".format(subfolder))
     print("\tversion    = {}".format("autodetect" if version is None else version))
     print("\tOUTPUT_DIR = {}".format(output_dir))
@@ -47,9 +44,6 @@ if __name__ == '__main__':
         except Exception as e:
             print("Could not read file: '{}': {}".format(full_filename, e))
             continue
-
-        if correct:
-            r.correct_packets()
 
         if version is None:
             detected_version = r.guess_version()
