@@ -117,14 +117,13 @@ def main():
         for video_id in videos:
             video = videos[video_id]
 
-            title = video.get('title', '')
             version = video.get('version', '')
+            title = video.get('title', '')
             filenames = video.get('filenames', '')
             error = video.get('error', '')
 
             for filename in filenames:
-                # filename must be first for VLOOKUP in Google Sheets to work
-                f.write(f'{filename}\t{video_id}\t{title}\t{version}\t{error}\n')
+                f.write(f'{version}\t{title}\t{video_id}\t{filename}\t{error}\n')
 
 
 
