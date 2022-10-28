@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Old School Tibia</title>
+  </head>
+  <body>
+    {% if replays %}
+    <ul>
+      {% for replay in replays %}
+        <li><a href="{{ replay }}/">{{ replay }}</a></li>
+      {% endfor %}
+    </ul>
+    {% else %}
+      <p>No replays</p>
+    {% endif %}
+  </body>
+</html>
+
+

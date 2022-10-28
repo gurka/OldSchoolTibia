@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 import argparse
+import datetime
 from libs import recording, utils
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("-f", "--full", help="dump all frames", action='store_true')
-    parser.add_argument("FILE", help="file(s) to convert", nargs='+')
+    parser.add_argument("FILE", help="file(s) to dump", nargs='+')
     args = parser.parse_args()
 
     full = args.full
@@ -22,10 +23,11 @@ if __name__ == '__main__':
                 print(e)
                 continue
 
-        print("'{}': Version: {} Length: {}ms Number of frames: {}".format(filename,
-                                                                           r.version,
-                                                                           r.length,
-                                                                           len(r.frames)))
+        print("'{}': Version: {} Length: {} ({}ms) Number of frames: {}".format(filename,
+                                                                                r.version,
+                                                                                datetime.timedelta(milliseconds=r.length),
+                                                                                r.length,
+                                                                                len(r.frames)))
 
         if full:
             for i, frame in enumerate(r.frames):

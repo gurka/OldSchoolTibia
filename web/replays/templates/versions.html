@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Old School Tibia</title>
+  </head>
+  <body>
+    {% if versions %}
+    <ul>
+      {% for version in versions %}
+        <li><a href="{{ version }}/">{{ version }}</a></li>
+      {% endfor %}
+    </ul>
+    {% else %}
+      <p>No versions</p>
+    {% endif %}
+  </body>
+</html>
+
