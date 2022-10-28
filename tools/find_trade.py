@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 import sys
 import argparse
+import json
 from libs import recording
-from dat_reader import load_dat
 
 
-def find_trade_packets(packet, packet_index, item_types):
+def find_trade_packets(frame, frame_index, extra_data):
     trade_packets = []
-    for i, b in enumerate(packet.data):
+    for i, b in enumerate(frame.data):
         # 0x7d is when the player initiate a trade (only sent to that player)
         # 0x7e is when a player makes a counter offer (sent to both players)
         # 0x7f is when the trade is closed (either traded or canceled?)
@@ -19,33 +19,30 @@ def find_trade_packets(packet, packet_index, item_types):
 
             # Next 2 bytes should be player name length
             # And should probably be larger than 2 and less than 64
-            player_name_len = packet.data[offset] | (packet.data[offset + 1] << 8)
+            player_name_len = frame.data[offset] | (frame.data[offset + 1] << 8)
             if player_name_len <= 2 or player_name_len >= 64:
                 continue
 
-            # Try to decode the player name, if it fails then it's not a trade packet
+            # Try to decode the player name, if it fails then it's not a trade frame
             offset += 2
             try:
-                player_name = packet.data[offset:offset + player_name_len].decode('ascii')
+                player_name = frame.data[offset:offset + player_name_len].decode('ascii')
             except:
                 continue
 
             # Parse number of items in the trade
             offset += player_name_len
-            num_items = packet.data[offset]
+            num_items = frame.data[offset]
 
             # Add item ids (note, some items have extra data...)
             offset += 1
             item_ids = []
             for _ in range(num_items):
-                item_id = packet.data[offset] | (packet.data[offset + 1] << 8)
+                item_id = frame.data[offset] | (frame.data[offset + 1] << 8)
                 offset += 2
 
-                # extra:
-                # 0x05 or 0x0b or 0x0c / stackable || splash || fluidContainer
-                item_options_set = set([opt.option for opt in item_types[item_id].opts])
-                if not item_options_set.isdisjoint(set([0x05, 0x0b, 0x0c])):
-                    item_extra = packet.data[offset]
+                if item_id in extra_data:
+                    item_extra = frame.data[offset]
                     offset += 1
                 else:
                     item_extra = None
@@ -54,8 +51,8 @@ def find_trade_packets(packet, packet_index, item_types):
         except IndexError:
             continue
 
-        bytes_left = len(packet.data) - offset
-        print(f"Possible trade packet ({b}) in packet={packet_index}, byte index={i}, player_name_len={player_name_len}, player_name={player_name}, num_items={num_items}, items_ids={item_ids}, bytes_left={bytes_left}")
+        bytes_left = len(frame.data) - offset
+        print(f"Possible trade frame ({b}) in frame={frame_index}, byte index={i}, player_name_len={player_name_len}, player_name={player_name}, num_items={num_items}, items_ids={item_ids}, bytes_left={bytes_left}")
 
         trade_packets.append(dict(
             start=i,
@@ -65,11 +62,11 @@ def find_trade_packets(packet, packet_index, item_types):
     return trade_packets
 
 
-def fix_recording(recording, item_types):
+def fix_recording(recording, extra_data):
     changed = False
-    packets_to_delete = []
-    for i, packet in enumerate(recording.packets):
-        trade_packets = find_trade_packets(packet, i, item_types)
+    frames_to_delete = []
+    for i, frame in enumerate(recording.frames):
+        trade_packets = find_trade_packets(frame, i, extra_data)
 
         if len(trade_packets) == 0:
             continue
@@ -84,41 +81,35 @@ def fix_recording(recording, item_types):
             length = trade_packet['length']
 
             # Remove the trade packet
-            packet.data = packet.data[0:start] + packet.data[start+length:]
+            frame.data = frame.data[0:start] + frame.data[start+length:]
 
-            if len(packet.data) < 2:
-                print(f"ERROR: after deleting the trade packet the recording packet length is only: {len(packet.data)}")
-                sys.exit(1)
-            elif len(packet.data) == 2:
-                # Just delete the whole recording packet
-                packets_to_delete.append(i)
-                print(f"Adjusted trade packet in packet {i}, by deleting the recording packet")
+            if len(frame.data) == 0:
+                # Just delete the whole recording frame
+                frames_to_delete.append(i)
+                print(f"  Adjusted trade frame in frame {i}, by deleting the recording frame")
             else:
-                # Try to adjust the packet header
-                packet_size = packet.data[0] | (packet.data[1] << 8)
-                packet_size -= length
-                if len(packet.data) - 2 != packet_size:
-                    print(f"ERROR: packet header doesn't seem to be correct, len(packet.data)={len(packet.data)} and packet_size={packet_size}")
-                    sys.exit(1)
-                packet.data = bytes([packet_size & 0xff, (packet_size >> 8) & 0xff]) + packet.data[2:]
-                print(f"Adjusted trade packet in packet {i}, by deleting the data and adjusting the packet size")
+                print(f"  Adjusted trade frame in frame {i}, by deleting the packet inside the frame. The frame data length is now {len(frame.data)}")
 
-    # Do it in reverse order, to not mess up packet indices
-    packets_to_delete.reverse()
-    for packet_index in packets_to_delete:
-        del recording.packets[packet_index]
+    # Do it in reverse order, to not mess up frame indices
+    frames_to_delete.reverse()
+    for frame_index in frames_to_delete:
+        del recording.frames[frame_index]
 
     return changed
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
+    parser.add_argument("EXTRA_FILE", help="json file with item types that has extra data (see get_item_types_with_extra_data.py)")
     parser.add_argument("FILE", help="file(s) to convert", nargs='+')
     args = parser.parse_args()
+
+    extra_file = args.EXTRA_FILE
     filenames = args.FILE
 
-    # Load dat file (this one is 7.6)
-    item_types = load_dat('/home/simon/Tibia.dat')
+    # Load extra file
+    with open(extra_file, 'r') as f:
+        extra_data = json.load(f)
 
     for filename in filenames:
         try:
@@ -131,7 +122,7 @@ if __name__ == '__main__':
                 print(e)
                 continue
 
-        if fix_recording(r, item_types):
+        if fix_recording(r, extra_data):
             new_filename = filename.replace('.trp', '-FIXED.trp')
-            recording.save(r, new_filename, r.version)
+            recording.save(r, new_filename)
             print(f"Saved recording to {new_filename}")
