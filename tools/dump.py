@@ -5,7 +5,7 @@ from libs import recording, utils
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("-f", "--full", help="dump all frames", action='store_true')
-    parser.add_argument("FILE", help="file(s) to convert", nargs='+')
+    parser.add_argument("FILE", help="file(s) to dump", nargs='+')
     args = parser.parse_args()
 
     full = args.full

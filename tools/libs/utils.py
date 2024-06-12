@@ -1,3 +1,5 @@
+import re
+
 def read_u8(f):
     """Reads an unsigned byte from the file object f.
     """
@@ -80,3 +82,77 @@ def print_bytes(data):
 
         # Print line
         print(line)
+
+
+def _is_latin_1(c):
+    return (c >= 32 and c <= 126) or (c >= 160 and c <= 255)
+
+
+def _check_string(data, start, string):
+    # Get (possible) string length based on 'start'
+    strlen = data[start - 2] | (data[start - 1] << 8)
+    if len(string) >= strlen:
+        return string[:strlen]
+    else:
+        return None
+
+
+def get_all_strings(filename, min_len, unique, smart):
+    strings = []
+
+    with open(filename, 'rb') as f:
+        # Read all into memory
+        data = f.read()
+
+        # The current string and its start offset
+        current = { 'start': 0, 'string': '' }
+
+        # Iterate over each byte
+        offset = 0
+        while offset < len(data):
+            char = data[offset]
+
+            if _is_latin_1(char):
+                if not current['string']:
+                    # Set the start offset, since this is the start of a new string
+                    current['start'] = offset
+
+                # Add byte to string, decoded as latin-1
+                current['string'] += bytes([char]).decode('latin-1')
+
+            elif current['string']:
+                # The byte is not a latin-1 character, check the current string
+                string = _check_string(data, current['start'], current['string'])
+                if string is not None:
+                    strings.append(string)
+
+                # Clear current string
+                current['string'] = ''
+
+            # Go to next byte
+            offset += 1
+
+        # Check the last string
+        if current['string']:
+            string = _check_string(data, current['start'], current['string'])
+            if string is not None:
+                strings.append(string)
+
+    # Remove all strings shorter than min_len
+    strings = [string for string in strings if len(string) >= min_len]
+
+    if smart:
+        temp = []
+        for string in strings:
+            new = re.sub(r'You lose \d+ hitpoint', r'You lose X hitpoint', string)
+            new = re.sub(r'You lose \d+ mana', r'You lose X mana', new)
+            temp.append(new)
+
+        strings = temp
+
+    if unique:
+        # nice
+        strings = list(set(strings))
+        strings.sort()
+
+    return strings

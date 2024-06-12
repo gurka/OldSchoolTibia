@@ -20,5 +20,5 @@ if __name__ == '__main__':
                 print(e)
                 continue
 
-        version = r.guess_version()
+        version = r._guess_version()
         print(f'{filename}: {"UNKNOWN" if version is None else version}')
