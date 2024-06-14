@@ -19,7 +19,7 @@ app.get('/', (req, res) => {
 });
 
 app.get("/recording", async (req, res) => {
-  const recordings = await mongoRecordings.find({}).project({ filename: 1, version: 1, length_ms: 1 }).limit(50).toArray()
+  const recordings = await mongoRecordings.find({}).project({ filename: 1, version: 1, length_ms: 1 }).toArray()
   res.send(recordings).status(200)
 });
 

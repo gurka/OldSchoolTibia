@@ -1,17 +1,22 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
-import App from './App.tsx'
 import { RouterProvider, createBrowserRouter } from 'react-router-dom'
 import '@fontsource/roboto/300.css';
 import '@fontsource/roboto/400.css';
 import '@fontsource/roboto/500.css';
 import '@fontsource/roboto/700.css';
+import Home from './Home';
+import Recordings from './Recordings';
 
 const router = createBrowserRouter([
   {
     path: "/",
-    element: <App />,
-    loader: App.loader,
+    element: <Home />
+  },
+  {
+    path: "/recordings/",
+    element: <Recordings />,
+    loader: Recordings.loader,
   }
 ])
 
