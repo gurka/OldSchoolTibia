@@ -1,5 +1,6 @@
 from datetime import date, datetime
 import os
+import sys
 import re
 import zlib
 from Crypto.Cipher import AES
@@ -46,7 +47,7 @@ def _aes_decrypt(encrypted_data):
 
     # The frame data length needs to be divisible by 16
     if len(encrypted_data) % 16 != 0:
-        raise Exception("File version 517, but frame data length is not divisible by 16")
+        raise Exception("Frame data length is not divisible by 16")
 
     # Decrypt each block (of 16 bytes)
     for block in range(len(encrypted_data) // 16):
@@ -77,25 +78,26 @@ def _simple_decrypt(rec_version, checksum, frame):
     # Decrypt frame data
     decrypted_data = b''
 
-    # Different key for each frame
+    # Different keys for each frame
     key = (len(frame.data) + frame.time) & 0xFF
+
+    # Different modulos for different file format versions
+    if rec_version == 515:
+        modulo = 5
+    elif rec_version in (516, 517):
+        modulo = 8
+    elif rec_version == 518:
+        modulo = 6
+    else:
+        raise Exception("Invalid version")
 
     # Decrypt each byte
     for i, byte in enumerate(frame.data):
-
         minus = (key + 33 * i + 2) & 0xFF
-
-        if rec_version == 515:
-            if minus & 0x80 == 0x80:
-                while (minus - 1) % 5 != 0:
-                    minus += 1
-            else:
-                while minus % 5 != 0:
-                    minus += 1
-
-        else:  # if rec_version in (516, 517)
-            while minus % 8 != 0:
-                minus += 1
+        if minus > 127:
+            minus -= 256
+        while minus % modulo != 0:
+            minus += 1
 
         result = (byte - minus) & 0xFF
         decrypted_data += result.to_bytes(1, byteorder='little', signed=False)
@@ -249,20 +251,20 @@ def load_rec(filename, force=False):
         # 259 = 7.21 - 7.24
         # 515 = 7.30 - 7.60
         # 516 = 7.70
-        # 517 = 7.70 - 7.90
-        # 518 = TODO
+        # 517 = 7.70 - 7.92
+        # 518 = 8.00 - ?.??
         # (TibiCAM reads the two values separately, but whatever...)
         rec_version = utils.read_u16(f)
 
-        if rec_version not in (259, 515, 516, 517):
+        if rec_version not in (259, 515, 516, 517, 518):
             raise InvalidFileException("'{}': Unsupported version: {}".format(filename, rec_version))
 
-        no_frames = utils.read_u32(f)
-        if rec_version in (515, 516, 517):
-            no_frames -= 57  # wtf
+        num_frames = utils.read_u32(f)
+        if rec_version in (515, 516, 517, 518):
+            num_frames -= 57  # wtf
 
         # Read each frame
-        for i in range(no_frames):
+        for i in range(num_frames):
             frame = Frame()
 
             try:
@@ -298,12 +300,12 @@ def load_rec(filename, force=False):
                     raise InvalidFileException("'{}': Unexpected end-of-file".format(filename))
 
             # For file type 2 there is first a simple encryption
-            if rec_version in (515, 516, 517):
+            if rec_version in (515, 516, 517, 518):
                 checksum = utils.read_u32(f)
                 try:
                     frame.data = _simple_decrypt(rec_version, checksum, frame)
-                    # Then, file type 517 has AES encryption
-                    if rec_version == 517:
+                    # Then, file type 517 and later has AES encryption
+                    if rec_version in (517, 518):
                         frame.data = _aes_decrypt(frame.data)
                 except Exception as e:
                     raise InvalidFileException("'{}': {}".format(filename, e))
@@ -348,10 +350,10 @@ def load_trp(filename):
         rec.length = utils.read_u32(f)
         rec.frames = []
 
-        no_frames = utils.read_u32(f)
+        num_frames = utils.read_u32(f)
 
         # Read each frame
-        for i in range(no_frames):
+        for i in range(num_frames):
             frame = Frame()
 
             frame.time = utils.read_u32(f)
