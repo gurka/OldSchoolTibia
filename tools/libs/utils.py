@@ -146,6 +146,7 @@ def get_all_strings(filename, min_len, unique, smart):
         for string in strings:
             new = re.sub(r'You lose \d+ hitpoint', r'You lose X hitpoint', string)
             new = re.sub(r'You lose \d+ mana', r'You lose X mana', new)
+            new = re.sub(r'Using one of \d+ .+\.\.\.', r'Using one of X Y...', new)
             temp.append(new)
 
         strings = temp
