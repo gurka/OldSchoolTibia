@@ -78,7 +78,7 @@ def _simple_decrypt(rec_version, checksum, frame):
     decrypted_data = b''
 
     # Different keys for each frame
-    key = (len(frame.data) + frame.time) & 0xFF
+    key = (len(frame.data) + frame.time + 2) & 0xFF
 
     # Different modulos for different file format versions
     if rec_version == 515:
@@ -92,16 +92,18 @@ def _simple_decrypt(rec_version, checksum, frame):
 
     # Decrypt each byte
     for i, byte in enumerate(frame.data):
-        minus = (key + 33 * i + 2) & 0xFF
+        minus = (key + 33 * i) & 0xFF
         if minus > 127:
             minus -= 256
-        while minus % modulo != 0:
-            minus += 1
+        if minus % modulo != 0:
+            minus += modulo - (minus % modulo)
 
         result = (byte - minus) & 0xFF
+
         decrypted_data += result.to_bytes(1, byteorder='little', signed=False)
 
     return decrypted_data
+
 
 def _merge_frames(frames):
     # Merge frames that contain a single Tibia packet
