@@ -190,6 +190,31 @@ def _guess_version(frames):
         (date(2007,  1,  8), 792),
         (date(2007,  6, 26), 800),
         (date(2007, 12, 11), 810),
+        (date(2008,  4,  8), 811),
+        (date(2008,  7,  2), 820),
+        (date(2008,  7, 24), 821),
+        (date(2008,  8, 12), 822),
+        (date(2008,  9, 30), 830),
+        (date(2008, 10,  1), 831),
+        (date(2008, 12, 10), 840),
+        (date(2009,  3, 18), 841),
+        (date(2009,  4, 22), 842),
+        (date(2009,  7,  1), 850),
+        (date(2009, 10,  1), 852),  # 8.51 was released the same day
+        (date(2009, 11,  5), 853),
+        (date(2009, 12,  9), 854),
+        (date(2010,  3, 17), 855),
+        (date(2010,  5,  5), 856),
+        (date(2010,  5,  6), 857),
+        (date(2010,  6, 30), 860),
+        (date(2010,  8, 23), 861),
+        (date(2010,  9, 22), 862),
+        (date(2010, 12,  8), 870),
+        (date(2011,  1, 27), 871),
+        (date(2011,  4, 20), 872),
+        (date(2011,  4,  4), 873),
+        (date(2011,  4, 12), 874),
+        (date(2011,  6,  9), 900),
     ]
 
     # Compile regex
@@ -221,7 +246,7 @@ def _guess_version(frames):
             d = datetime.strptime(f'{m.group(3)}-{m.group(2)}-{m.group(1)}', '%Y-%b-%d').date()
 
             # Guess version
-            for vi in range(1, len(updates) - 1):
+            for vi in range(1, len(updates)):
                 version_date, _ = updates[vi]
                 if version_date > d:
                     _, version = updates[vi - 1]
