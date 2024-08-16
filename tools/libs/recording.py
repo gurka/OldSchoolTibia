@@ -1,6 +1,5 @@
 from datetime import date, datetime
 import os
-import sys
 import re
 import zlib
 from Crypto.Cipher import AES
