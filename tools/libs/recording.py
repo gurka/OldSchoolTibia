@@ -224,8 +224,9 @@ def _guess_version(frames):
     for i in range(0, len(frame.data) - 4):
         # Version 7.1 has 0xb4 0x11
         # Version 7.2 has 0xb4 0x13
-        # Version 7.26 and later has 0xb4 0x14
-        if frame.data[i] == 0xb4 and frame.data[i + 1] in (0x11, 0x13, 0x14):
+        # Version 7.26 - 8.10 have 0xb4 0x14
+        # Version 8.2? - ?.?? have 0xb4 0x16
+        if frame.data[i] == 0xb4 and frame.data[i + 1] in (0x11, 0x13, 0x14, 0x16):
             # Possibly a text message
             try:
                 text_length = frame.data[i + 2] | frame.data[i + 3] << 8
