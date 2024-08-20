@@ -48,13 +48,8 @@ if __name__ == '__main__':
             print("'{}': invalid file".format(full_filename))
             continue
 
-        if not filename.lower().endswith('.rec') and not filename.lower().endswith('.trp'):
-            print("'{}': can not parse file".format(full_filename))
-            continue
-
         try:
-            # TODO: re-add force
-            r = recording.load(full_filename)
+            r = recording.load(full_filename, force)
         except Exception as e:
             print("'{}': could not read file: {}".format(full_filename, e))
             continue

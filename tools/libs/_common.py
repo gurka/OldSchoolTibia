@@ -4,6 +4,15 @@ import re
 from libs import recording
 
 
+def fix_frame_times(frames):
+    # Fix frame times (first frame should start at time = 0)
+    if frames[0].time != 0:
+        diff = frames[0].time
+
+        for frame in frames:
+            frame.time -= diff
+
+
 def merge_frames(frames):
     # Merge frames that contain a single Tibia packet
     # i.e. where the Tibia packet length is greater than the frame data length

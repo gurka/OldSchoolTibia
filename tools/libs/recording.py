@@ -59,18 +59,20 @@ recording_formats = [
 ]
 
 
-def load(filename):
+def load(filename, force=False):
     """Loads a Tibia recording
 
     Loads a Tibia recording file and returns a Recording object.
 
     Arguments:
         filename: The filename of the Tibia recording to load.
+        force: if True, return a Recording object even if not all
+               frames could be read (i.e. if EOF is reached unexpectedly)
     """
 
     for recording_format in recording_formats:
         if filename.lower().endswith(recording_format.extension):
-            return recording_format.load(filename)
+            return recording_format.load(filename, force)
     
     raise InvalidFileException("'{}': Unsupported file".format(filename))
 

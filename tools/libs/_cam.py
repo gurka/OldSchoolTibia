@@ -1,17 +1,16 @@
 import io
 import lzma
 
-from libs import recording, utils
+from libs import _common, recording, utils
 
 
 class RecordingFormatCam(recording.RecordingFormat):
 
     extension = '.cam'
     
-    def load(filename):
-        """ This implementation is based on https://github.com/tibiacast/tibiarc/blob/main/lib/formats/cam.c
-        and https://github.com/tulio150/tibia-ttm/blob/master/File%20Formats.txt
-        """
+    def load(filename, force):
+        # This implementation is based on https://github.com/tibiacast/tibiarc/blob/main/lib/formats/cam.c
+        # and https://github.com/tulio150/tibia-ttm/blob/master/File%20Formats.txt
 
         rec = recording.Recording()
         with open(filename, 'rb') as f:
@@ -47,22 +46,34 @@ class RecordingFormatCam(recording.RecordingFormat):
                 frame_count = utils.read_u32(ff)
                 frame_count -= 57
 
-                for i in range(frame_count):
-                    frame = recording.Frame()
-                    frame_length = utils.read_u16(ff)
-                    frame.time = utils.read_u32(ff)
+                try:
+                    for _ in range(frame_count):
+                        frame = recording.Frame()
+                        frame_length = utils.read_u16(ff)
+                        frame.time = utils.read_u32(ff)
 
-                    # skip the (inner) frame length
-                    ff.read(2)
+                        # Note: we include 2 byte header here, this is because we
+                        #       call merge_frames later
+                        frame.data = ff.read(frame_length)
 
-                    frame.data = ff.read(frame_length)
+                        # Skip bogus checksum/size/trash/???
+                        ff.read(4)
 
-                    # Skip bogus checksum/size/trash/???
-                    ff.read(2)
+                        rec.frames.append(frame)
 
-                    rec.frames.append(frame)
+                except Exception as e:
+                    # If force is True and we read at least one frame, return the recording
+                    # instead of throwing an exception
+                    if not force and len(rec.frames) > 0:
+                        raise e
 
-        # Set recording length (=last frame's time)
+        # Fix frame times
+        _common.fix_frame_times(rec.frames)
+
+        # Set recording's total time ( = last frame's time)
         rec.length = rec.frames[-1].time
+
+        # Merge frames
+        rec.frames = _common.merge_frames(rec.frames)
 
         return rec

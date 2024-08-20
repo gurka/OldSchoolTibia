@@ -7,14 +7,7 @@ class RecordingFormatTrp(recording.RecordingFormat):
 
     extension = '.trp'
 
-    def load(filename):
-        """Loads a Tibia Replay recording (file extension .trp)
-
-        Loads a Tibia Replay recording and returns a Recording object.
-
-        Arguments:
-            filename: The filename of the Tibia Replay file.
-        """
+    def load(filename, force):
         rec = recording.Recording()
 
         with open(filename, 'rb') as f:
@@ -28,36 +21,34 @@ class RecordingFormatTrp(recording.RecordingFormat):
             num_frames = utils.read_u32(f)
 
             # Read each frame
-            for i in range(num_frames):
-                frame = recording.Frame()
+            try:
+                for _ in range(num_frames):
+                    frame = recording.Frame()
 
-                frame.time = utils.read_u32(f)
-                if frame.time < 0 or frame.time > rec.length:
-                    raise recording.InvalidFileException("'{}': Invalid frame.time: {}".format(filename, frame.time))
+                    frame.time = utils.read_u32(f)
+                    if frame.time < 0 or frame.time > rec.length:
+                        raise recording.InvalidFileException("'{}': Invalid frame.time: {}".format(filename, frame.time))
 
-                frame_length = utils.read_u16(f)
-                if frame_length <= 0:
-                    raise recording.InvalidFileException("'{}': Invalid frame_length: {}".format(filename, frame_length))
+                    frame_length = utils.read_u16(f)
+                    if frame_length <= 0:
+                        raise recording.InvalidFileException("'{}': Invalid frame_length: {}".format(filename, frame_length))
 
-                frame.data = f.read(frame_length)
-                if len(frame.data) != frame_length:
-                    raise recording.InvalidFileException("'{}': Unexpected end-of-file".format(filename))
+                    frame.data = f.read(frame_length)
+                    if len(frame.data) != frame_length:
+                        raise recording.InvalidFileException("'{}': Unexpected end-of-file".format(filename))
 
-                rec.frames.append(frame)
+                    rec.frames.append(frame)
+
+            except Exception as e:
+                # If force is True and we read at least one frame, return the recording
+                # instead of throwing an exception
+                if not force and len(rec.frames) > 0:
+                    raise e
 
         return rec
 
 
     def save(recording, filename):
-        """Saves a Tibia recording using the Tibia Replay format
-
-        Note that version must be set in recording, otherwise this
-        function will raise an exception.
-
-        Arguments:
-            recording: The recording to save.
-            filename: The filename to write to.
-        """
         if os.path.isfile(filename):
             raise Exception("File: '{}' already exist".format(filename))
 
