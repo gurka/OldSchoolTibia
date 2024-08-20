@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import argparse
 import json
-from enum import Enum
+
 from libs import utils
 
 

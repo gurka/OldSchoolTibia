@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 import argparse
+
 from libs import recording, utils
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()

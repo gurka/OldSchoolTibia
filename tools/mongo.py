@@ -2,6 +2,7 @@
 import argparse
 import hashlib
 import os
+
 from pymongo import MongoClient
 
 from libs import recording, utils

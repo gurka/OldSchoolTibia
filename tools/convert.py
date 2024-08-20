@@ -2,7 +2,9 @@
 import argparse
 import os
 import sys
+
 from libs import recording
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -51,7 +53,8 @@ if __name__ == '__main__':
             continue
 
         try:
-            r = recording.load(full_filename, force)
+            # TODO: re-add force
+            r = recording.load(full_filename)
         except Exception as e:
             print("'{}': could not read file: {}".format(full_filename, e))
             continue

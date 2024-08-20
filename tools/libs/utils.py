@@ -30,6 +30,16 @@ def read_u32(f):
     return int.from_bytes(temp, byteorder='little', signed=False)
 
 
+def read_u64(f):
+    """Reads an eight byte unsigned value from the file object f.
+    """
+    temp = f.read(8)
+    if not temp:
+        raise EOFError("EOF")
+
+    return int.from_bytes(temp, byteorder='little', signed=False)
+
+
 def write_u8(f, v):
     """Writes the value v as an unsigned byte to the file object f.
     """
@@ -46,6 +56,12 @@ def write_u32(f, v):
     """Writes the value v as a four byte unsigned value to the file object f.
     """
     f.write(v.to_bytes(4, byteorder='little', signed=False))
+
+
+def write_u64(f, v):
+    """Writes the value v as an eight byte unsigned value to the file object f.
+    """
+    f.write(v.to_bytes(8, byteorder='little', signed=False))
 
 
 def print_bytes(data):
