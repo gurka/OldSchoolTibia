@@ -12,6 +12,11 @@ if __name__ == '__main__':
     filenames = args.FILE
 
     for filename in filenames:
-        r = recording.load(filename, True)
+        try:
+            r = recording.load(filename, True)
+        except Exception as e:
+            print(f"'{filename}': could not load file: {e}")
+            continue
+
         version = r.version
         print(f'{filename}: {"UNKNOWN" if version is None else version}')
