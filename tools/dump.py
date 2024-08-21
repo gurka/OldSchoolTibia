@@ -16,7 +16,12 @@ if __name__ == '__main__':
     filenames = args.FILE
 
     for filename in filenames:
-        r = recording.load(filename, force)
+        try:
+            r = recording.load(filename, force)
+        except Exception as e:
+            print(f"'{filename}': could not load file: {e}")
+            continue
+
         print(f"'{filename}': Version: {r.version} Length: {r.length}ms Number of frames: {len(r.frames)}")
         if full:
             for i, frame in enumerate(r.frames):

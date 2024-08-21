@@ -113,20 +113,17 @@ def _check_string(data, start, string):
         return None
 
 
-def get_all_strings(filename, min_len, unique, smart):
+def get_all_strings(frames, min_len, unique, smart):
     strings = []
 
-    with open(filename, 'rb') as f:
-        # Read all into memory
-        data = f.read()
-
+    for frame in frames:
         # The current string and its start offset
         current = { 'start': 0, 'string': '' }
 
         # Iterate over each byte
         offset = 0
-        while offset < len(data):
-            char = data[offset]
+        while offset < len(frame.data):
+            char = frame.data[offset]
 
             if _is_latin_1(char):
                 if not current['string']:
@@ -138,7 +135,7 @@ def get_all_strings(filename, min_len, unique, smart):
 
             elif current['string']:
                 # The byte is not a latin-1 character, check the current string
-                string = _check_string(data, current['start'], current['string'])
+                string = _check_string(frame.data, current['start'], current['string'])
                 if string is not None:
                     strings.append(string)
 
@@ -150,7 +147,7 @@ def get_all_strings(filename, min_len, unique, smart):
 
         # Check the last string
         if current['string']:
-            string = _check_string(data, current['start'], current['string'])
+            string = _check_string(frame.data, current['start'], current['string'])
             if string is not None:
                 strings.append(string)
 
