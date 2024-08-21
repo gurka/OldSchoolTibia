@@ -73,9 +73,10 @@ def print_bytes(data):
         for i in range(0, len(l), n):
             yield l[i:i+n]
 
+    offset = 0
     for chunk in chunks(data, 16):
         # Lint to be printed
-        line = ""
+        line = f"{offset:08x}    "
 
         # Add hex
         str_hex = [f"{byte:02X}" for byte in chunk]
@@ -86,7 +87,7 @@ def print_bytes(data):
             line += "   " * (16 - len(str_hex))
 
         # Add ascii
-        line += " |"
+        line += "    |"
         str_ascii = [f"{byte:c}" if 31 < byte < 127 else "." for byte in chunk]
         line += "".join(str_ascii)
 
@@ -99,60 +100,29 @@ def print_bytes(data):
         # Print line
         print(line)
 
-
-def _is_latin_1(c):
-    return (c >= 32 and c <= 126) or (c >= 160 and c <= 255)
-
-
-def _check_string(data, start, string):
-    # Get (possible) string length based on 'start'
-    strlen = data[start - 2] | (data[start - 1] << 8)
-    if len(string) >= strlen:
-        return string[:strlen]
-    else:
-        return None
+        offset += 16
 
 
 def get_all_strings(frames, min_len, unique, smart):
     strings = []
 
+    def is_latin_1(c):
+        return (c >= 32 and c <= 126) or (c >= 160 and c <= 255)
+
+
     for frame in frames:
-        # The current string and its start offset
-        current = { 'start': 0, 'string': '' }
-
-        # Iterate over each byte
         offset = 0
-        while offset < len(frame.data):
-            char = frame.data[offset]
+        while offset < len(frame.data) - 2:
+            string_length = (frame.data[offset + 1] << 8) | frame.data[offset]
+            if string_length >= min_len and string_length < 1024 and (offset + 2 + string_length - 1 < len(frame.data)):
+                string_raw = frame.data[offset + 2:offset + 2 + string_length]
+                if all(is_latin_1(char) for char in string_raw):
+                    strings.append(string_raw.decode('latin-1'))
 
-            if _is_latin_1(char):
-                if not current['string']:
-                    # Set the start offset, since this is the start of a new string
-                    current['start'] = offset
+                    # note: subtract 1 here because we add 1 below
+                    offset += 2 + string_length - 1
 
-                # Add byte to string, decoded as latin-1
-                current['string'] += bytes([char]).decode('latin-1')
-
-            elif current['string']:
-                # The byte is not a latin-1 character, check the current string
-                string = _check_string(frame.data, current['start'], current['string'])
-                if string is not None:
-                    strings.append(string)
-
-                # Clear current string
-                current['string'] = ''
-
-            # Go to next byte
             offset += 1
-
-        # Check the last string
-        if current['string']:
-            string = _check_string(frame.data, current['start'], current['string'])
-            if string is not None:
-                strings.append(string)
-
-    # Remove all strings shorter than min_len
-    strings = [string for string in strings if len(string) >= min_len]
 
     if smart:
         temp = []
