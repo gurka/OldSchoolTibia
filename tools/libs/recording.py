@@ -7,8 +7,8 @@ class Frame:
     """
 
     def __init__(self):
-       self.time = 0
-       self.data = b''
+       self.time: int = 0
+       self.data: bytes = bytes()
 
 
 class Recording:
@@ -21,29 +21,33 @@ class Recording:
     """
 
     def __init__(self):
-        self.version = None
-        self.length = 0
-        self.frames = []
+        self.version: int = None
+        self.length: int = 0
+        self.frames: list[Frame] = []
 
 
 class RecordingFormat:
     """Base class for loading and saving recordings.
     """
 
-    extension = None
+    extension: str = None
 
-    def load(filename):
-        raise NotImplementedException()
+    def load(filename: str) -> tuple[Recording, Exception]:
+        """Load a Tibia recording.
 
-    def save(filename, recording):
-        raise NotImplementedException()
+        Return: tuple of Recording and Exception
+                Recording should be set if something from the file could be parsed
+                Exception should be set if an exception was raised during loading
+                Note that both Recording and Exception can be set, if loading was
+                partially successful
+        """
+        return None, NotImplementedError()
+
+    def save(filename: str, recording: Recording) -> None:
+        raise NotImplementedError
 
 
-class InvalidFileException(Exception):
-    pass
-
-
-class NotImplementedException(Exception):
+class InvalidFileError(Exception):
     pass
 
 
@@ -54,7 +58,7 @@ from libs._ttm import RecordingFormatTtm
 from libs._tmv import RecordingFormatTmv
 
 
-recording_formats = [
+recording_formats: list[RecordingFormat] = [
     RecordingFormatTrp,
     RecordingFormatRec,
     RecordingFormatCam,
@@ -63,25 +67,29 @@ recording_formats = [
 ]
 
 
-def load(filename, force=False):
+def load(filename, force) -> Recording:
     """Loads a Tibia recording
 
     Loads a Tibia recording file and returns a Recording object.
 
     Arguments:
         filename: The filename of the Tibia recording to load.
-        force: if True, return a Recording object even if not all
-               frames could be read (i.e. if EOF is reached unexpectedly)
+        force: if True, return a Recording object even if EOF is reached
+               unexpectedly as long as one frame could be read
+               if False, throw an exception if EOF is reached unexpectedly
     """
 
     for recording_format in recording_formats:
         if filename.lower().endswith(recording_format.extension):
-            return recording_format.load(filename, force)
+            recording, exception = recording_format.load(filename)
+            if exception is None or (type(exception) is EOFError and force and len(recording.frames) > 0):
+                return recording
+            raise exception
 
-    raise InvalidFileException("'{}': Unsupported file".format(filename))
+    raise InvalidFileError("'{}': Unsupported file".format(filename))
 
 
-def save(recording, filename):
+def save(recording: Recording, filename: str) -> None:
     """Saves a Tibia recording
 
     Saves a Tibia recording to a file.
@@ -93,6 +101,7 @@ def save(recording, filename):
 
     for recording_format in recording_formats:
         if filename.lower().endswith(recording_format.extension):
-            return recording_format.save(recording, filename)
+            recording_format.save(recording, filename)
+            return
 
-    raise InvalidFileException("'{}': Unsupported file".format(filename))
+    raise InvalidFileError("'{}': Unsupported file".format(filename))

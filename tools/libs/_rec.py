@@ -75,29 +75,30 @@ class RecordingFormatRec(recording.RecordingFormat):
         return decrypted_data
 
 
-    def load(filename, force):
+    def load(filename):
         rec = recording.Recording()
+        exception = None
 
-        with open(filename, 'rb') as f:
+        try:
+            with open(filename, 'rb') as f:
 
-            # This may or may not be correct
-            # 259 = 7.21 - 7.24
-            # 515 = 7.30 - 7.60
-            # 516 = 7.70
-            # 517 = 7.70 - 7.92
-            # 518 = 8.00 - ?.??
-            # (TibiCAM reads the two values separately, but whatever...)
-            rec_version = utils.read_u16(f)
+                # This may or may not be correct
+                # 259 = 7.21 - 7.24
+                # 515 = 7.30 - 7.60
+                # 516 = 7.70
+                # 517 = 7.70 - 7.92
+                # 518 = 8.00 - ?.??
+                # (TibiCAM reads the two values separately, but whatever...)
+                rec_version = utils.read_u16(f)
 
-            if rec_version not in (259, 515, 516, 517, 518):
-                raise recording.InvalidFileException("'{}': Unsupported version: {}".format(filename, rec_version))
+                if rec_version not in (259, 515, 516, 517, 518):
+                    raise recording.InvalidFileException("'{}': Unsupported version: {}".format(filename, rec_version))
 
-            num_frames = utils.read_u32(f)
-            if rec_version in (515, 516, 517, 518):
-                num_frames -= 57  # wtf
+                num_frames = utils.read_u32(f)
+                if rec_version in (515, 516, 517, 518):
+                    num_frames -= 57  # wtf
 
-            # Read each frame
-            try:
+                # Read each frame
                 for i in range(num_frames):
                     frame = recording.Frame()
 
@@ -128,22 +129,20 @@ class RecordingFormatRec(recording.RecordingFormat):
 
                     rec.frames.append(frame)
 
-            except Exception as e:
-                # If force is True and we read at least one frame, return the recording
-                # instead of throwing an exception
-                if not force and len(rec.frames) > 0:
-                    raise e
+        except Exception as e:
+            exception = e
 
-        # Fix frame times
-        _common.fix_frame_times(rec.frames)
+        if len(rec.frames) > 0:
+            # Fix frame times
+            _common.fix_frame_times(rec.frames)
 
-        # Set recording's total time ( = last frame's time)
-        rec.length = rec.frames[-1].time
+            # Set recording's total time ( = last frame's time)
+            rec.length = rec.frames[-1].time
 
-        # Merge frames
-        rec.frames = _common.merge_frames(rec.frames)
+            # Merge frames
+            rec.frames = _common.merge_frames(rec.frames)
 
-        # Finally, try to guess the version
-        rec.version = _common.guess_version(rec.frames)
+            # Finally, try to guess the version
+            rec.version = _common.guess_version(rec.frames)
 
-        return rec
+        return rec, exception

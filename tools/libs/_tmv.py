@@ -7,7 +7,7 @@ class RecordingFormatTmv(recording.RecordingFormat):
 
     extension = '.tmv'
 
-    def load(filename, force):
+    def load(filename):
         # This implementation is based on https://github.com/tulio150/tibia-ttm/blob/master/File%20Formats.txt
         # There seems to exist two different .tmv formats, TibiaMovie and TibiaMovie2
         # For now only TibiaMovie is implemented
@@ -18,19 +18,24 @@ class RecordingFormatTmv(recording.RecordingFormat):
                 raise recording.InvalidFileException("TibiaMovie2 is not implemented yet")
 
         rec = recording.Recording()
+        exception = None
 
-        with gzip.open(filename, 'rb') as f:
-            format_version = utils.read_u16(f)
-            if format_version != 2:
-                raise recording.InvalidFileException("Unknown format_version={format_version}")
+        try:
+            with gzip.open(filename, 'rb') as f:
+                format_version = utils.read_u16(f)
+                if format_version != 2:
+                    raise recording.InvalidFileException("Unknown format_version={format_version}")
 
-            rec.version = utils.read_u16(f)
-            rec.length = utils.read_u32(f)
+                rec.version = utils.read_u16(f)
+                rec.length = utils.read_u32(f)
 
-            try:
                 current_timestamp = 0
                 while True:
-                    data_type = utils.read_u8(f)
+                    try:
+                        data_type = utils.read_u8(f)
+                    except EOFError:
+                        break
+
                     if data_type == 0:
                         current_timestamp += utils.read_u32(f)
 
@@ -54,23 +59,17 @@ class RecordingFormatTmv(recording.RecordingFormat):
                     else:
                         raise recording.InvalidFileException(f'Unknown data_type={data_type}')
 
+        except Exception as e:
+            exception = e
 
-            except EOFError:
-                pass
+        if len(rec.frames) > 0:
+            # Fix frame times
+            _common.fix_frame_times(rec.frames)
 
-            except Exception as e:
-                # If force is True and we read at least one frame, return the recording
-                # instead of throwing an exception
-                if not force and len(rec.frames) > 0:
-                    raise e
+            # Set recording's total time ( = last frame's time)
+            rec.length = rec.frames[-1].time
 
-        # Fix frame times
-        _common.fix_frame_times(rec.frames)
+            # Merge frames
+            rec.frames = _common.merge_frames(rec.frames)
 
-        # Set recording's total time ( = last frame's time)
-        rec.length = rec.frames[-1].time
-
-        # Merge frames
-        rec.frames = _common.merge_frames(rec.frames)
-
-        return rec
+        return rec, exception

@@ -76,7 +76,7 @@ def convert_file(filename, force, version, overwrite, delete, output_dir):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument("-f", "--force", help="do not skip file with unexpected end-of-file.", action='store_true')
+    parser.add_argument("-n", "--no-force", help="skip files with unexpected end-of-file.", action='store_true')
     parser.add_argument("-s", "--subfolder", help="place the output file(s) in sub-folders according to their version.", action='store_true')
     parser.add_argument("-v", "--version", help="use this version if no version was automatically detected. To always set the given version, use -o/--overwrite.", type=int)
     parser.add_argument("-o", "--overwrite", help="always use the version provided with -v/--version, even if a version was automatically detected.", action='store_true')
@@ -86,7 +86,7 @@ if __name__ == '__main__':
     parser.add_argument("FILE", help="file(s) to convert or directory to scan for files", nargs='+')
     args = parser.parse_args()
 
-    force = args.force
+    force = not args.no_force
     subfolder = args.subfolder
     version = args.version
     overwrite = args.overwrite

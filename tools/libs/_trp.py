@@ -7,21 +7,22 @@ class RecordingFormatTrp(recording.RecordingFormat):
 
     extension = '.trp'
 
-    def load(filename, force):
+    def load(filename):
         rec = recording.Recording()
+        exception = None
 
-        with open(filename, 'rb') as f:
-            magic = f.read(4)
-            if magic != b'TRP\0':
-                raise recording.InvalidFileException("'{}' has invalid magic: {}".format(filename, magic))
+        try:
+            with open(filename, 'rb') as f:
+                magic = f.read(4)
+                if magic != b'TRP\0':
+                    raise recording.InvalidFileException("'{}' has invalid magic: {}".format(filename, magic))
 
-            rec.version = utils.read_u16(f)
-            rec.length = utils.read_u32(f)
+                rec.version = utils.read_u16(f)
+                rec.length = utils.read_u32(f)
 
-            num_frames = utils.read_u32(f)
+                num_frames = utils.read_u32(f)
 
-            # Read each frame
-            try:
+                # Read each frame
                 for _ in range(num_frames):
                     frame = recording.Frame()
 
@@ -39,13 +40,10 @@ class RecordingFormatTrp(recording.RecordingFormat):
 
                     rec.frames.append(frame)
 
-            except Exception as e:
-                # If force is True and we read at least one frame, return the recording
-                # instead of throwing an exception
-                if not force and len(rec.frames) > 0:
-                    raise e
+        except Exception as e:
+            exception = e
 
-        return rec
+        return rec, exception
 
 
     def save(recording, filename):
