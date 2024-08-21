@@ -7,7 +7,7 @@ from libs import _common, recording, utils
 class RecordingFormatCam(recording.RecordingFormat):
 
     extension = '.cam'
-    
+
     def load(filename, force):
         # This implementation is based on https://github.com/tibiacast/tibiarc/blob/main/lib/formats/cam.c
         # and https://github.com/tulio150/tibia-ttm/blob/master/File%20Formats.txt
@@ -52,7 +52,7 @@ class RecordingFormatCam(recording.RecordingFormat):
                         frame_length = utils.read_u16(ff)
                         frame.time = utils.read_u32(ff)
 
-                        # Note: we include 2 byte header here, this is because we
+                        # Note: we include 2 byte header here, as we want to
                         #       call merge_frames later
                         frame.data = ff.read(frame_length)
 

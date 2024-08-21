@@ -31,7 +31,7 @@ class RecordingFormat:
     """
 
     extension = None
-    
+
     def load(filename):
         raise NotImplementedException()
 
@@ -50,12 +50,16 @@ class NotImplementedException(Exception):
 from libs._trp import RecordingFormatTrp
 from libs._rec import RecordingFormatRec
 from libs._cam import RecordingFormatCam
+from libs._ttm import RecordingFormatTtm
+from libs._tmv import RecordingFormatTmv
 
 
 recording_formats = [
     RecordingFormatTrp,
     RecordingFormatRec,
     RecordingFormatCam,
+    RecordingFormatTtm,
+    RecordingFormatTmv,
 ]
 
 
@@ -73,7 +77,7 @@ def load(filename, force=False):
     for recording_format in recording_formats:
         if filename.lower().endswith(recording_format.extension):
             return recording_format.load(filename, force)
-    
+
     raise InvalidFileException("'{}': Unsupported file".format(filename))
 
 
@@ -90,5 +94,5 @@ def save(recording, filename):
     for recording_format in recording_formats:
         if filename.lower().endswith(recording_format.extension):
             return recording_format.save(recording, filename)
-    
+
     raise InvalidFileException("'{}': Unsupported file".format(filename))
