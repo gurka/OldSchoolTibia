@@ -15,7 +15,7 @@ class RecordingFormatTrp(recording.RecordingFormat):
             with open(filename, 'rb') as f:
                 magic = f.read(4)
                 if magic != b'TRP\0':
-                    raise recording.InvalidFileException("'{}' has invalid magic: {}".format(filename, magic))
+                    raise recording.InvalidFileError(f"invalid magic={magic}")
 
                 rec.version = utils.read_u16(f)
                 rec.length = utils.read_u32(f)
@@ -28,15 +28,13 @@ class RecordingFormatTrp(recording.RecordingFormat):
 
                     frame.time = utils.read_u32(f)
                     if frame.time < 0 or frame.time > rec.length:
-                        raise recording.InvalidFileException("'{}': Invalid frame.time: {}".format(filename, frame.time))
+                        raise recording.InvalidFileError(f"invalid frame.time={frame.time}")
 
                     frame_length = utils.read_u16(f)
                     if frame_length <= 0:
-                        raise recording.InvalidFileException("'{}': Invalid frame_length: {}".format(filename, frame_length))
+                        raise recording.InvalidFileError(f"invalid frame_length={frame_length}")
 
                     frame.data = f.read(frame_length)
-                    if len(frame.data) != frame_length:
-                        raise recording.InvalidFileException("'{}': Unexpected end-of-file".format(filename))
 
                     rec.frames.append(frame)
 
@@ -48,10 +46,10 @@ class RecordingFormatTrp(recording.RecordingFormat):
 
     def save(recording, filename):
         if os.path.isfile(filename):
-            raise Exception("File: '{}' already exist".format(filename))
+            raise IOError(f"'{filename}': already exist")
 
         if recording.version is None:
-            raise Exception("File: '{}', recording.version is None".format(filename))
+            raise Exception(f"'{filename}': recording.version is None")
 
         with open(filename, 'wb') as f:
 

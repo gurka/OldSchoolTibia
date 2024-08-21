@@ -12,15 +12,6 @@ if __name__ == '__main__':
     filenames = args.FILE
 
     for filename in filenames:
-        try:
-            r = recording.load(filename)
-        except recording.InvalidFileException as e:
-            print("'{}': Retrying with force=True".format(filename))
-            try:
-                r = recording.load(filename, True)
-            except recording.InvalidFileException as e:
-                print(e)
-                continue
-
+        r = recording.load(filename, True)
         version = r.version
         print(f'{filename}: {"UNKNOWN" if version is None else version}')

@@ -17,12 +17,8 @@ if __name__ == '__main__':
 
     for filename in filenames:
         r = recording.load(filename, force)
-        print("'{}': Version: {} Length: {}ms Number of frames: {}".format(filename,
-                                                                           r.version,
-                                                                           r.length,
-                                                                           len(r.frames)))
-
+        print(f"'{filename}': Version: {r.version} Length: {r.length}ms Number of frames: {len(r.frames)}")
         if full:
             for i, frame in enumerate(r.frames):
-                print("'{}': Frame: {} Time: {} Length: {}".format(filename, i, frame.time, len(frame.data)))
+                print(f"'{filename}': Frame: {i} Time: {frame.time} Length: {len(frame.data)}")
                 utils.print_bytes(frame.data)

@@ -6,6 +6,9 @@ from libs import recording
 
 def fix_frame_times(frames):
     # Fix frame times (first frame should start at time = 0)
+    if len(frames) == 0:
+        return
+
     if frames[0].time != 0:
         diff = frames[0].time
 
@@ -35,6 +38,9 @@ def merge_frames(frames):
     # This frame can be merged with frame 3 (and possible more), since the frame length is 8
     # but the Tibia packet length is 18 (2 + 16). The rest of the Tibia packet data is in frame
     # 4 (and possibly frame 5, 6, ...)
+
+    if len(frames) <= 1:
+        return
 
     # Put together all recording-packet's data into one large list
     recording_frames_data = b''.join([ frame.data for frame in frames ])
@@ -71,6 +77,9 @@ def merge_frames(frames):
 
 
 def guess_version(frames):
+    if len(frames) == 0:
+        return
+
     # Updates
     updates = [
         (date(2002,  8, 28), 700),

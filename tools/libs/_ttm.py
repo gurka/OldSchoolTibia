@@ -19,6 +19,7 @@ class RecordingFormatTtm(recording.RecordingFormat):
                 if server_name_len > 0:
                     server_name = f.read(server_name_len)
                     server_port = utils.read_u16(f)
+                    # TODO: remove
                     print(f'server name: {server_name}')
                     print(f'server port: {server_port}')
 
@@ -42,7 +43,7 @@ class RecordingFormatTtm(recording.RecordingFormat):
                     elif next_packet_type == 1:
                         current_timestamp += 1000
                     else:
-                        raise recording.InvalidFileException(f"'{filename}': unknown next_packet_type={next_packet_type}")
+                        raise recording.InvalidFileError(f"invalid next_packet_type={next_packet_type}")
 
         except Exception as e:
             exception = e

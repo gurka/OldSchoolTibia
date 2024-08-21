@@ -86,7 +86,7 @@ def load(filename, force) -> Recording:
                 return recording
             raise exception
 
-    raise InvalidFileError("'{}': Unsupported file".format(filename))
+    raise InvalidFileError("unsupported file")
 
 
 def save(recording: Recording, filename: str) -> None:
@@ -104,4 +104,4 @@ def save(recording: Recording, filename: str) -> None:
             recording_format.save(recording, filename)
             return
 
-    raise InvalidFileError("'{}': Unsupported file".format(filename))
+    raise InvalidFileError("unsupported file")

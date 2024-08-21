@@ -112,16 +112,7 @@ if __name__ == '__main__':
         extra_data = json.load(f)
 
     for filename in filenames:
-        try:
-            r = recording.load(filename)
-        except recording.InvalidFileException as e:
-            print("'{}': Retrying with force=True".format(filename))
-            try:
-                r = recording.load(filename, True)
-            except recording.InvalidFileException as e:
-                print(e)
-                continue
-
+        r = recording.load(filename, True)
         if fix_recording(r, extra_data):
             new_filename = filename.replace('.trp', '-FIXED.trp')
             recording.save(r, new_filename)

@@ -29,6 +29,10 @@ class RecordingFormatCam(recording.RecordingFormat):
                 f.read(1)
                 rec.version = version
 
+                # No idea what versions are valid...
+                if rec.version < 700 or rec.version > 1200:
+                    raise recording.InvalidFileError(f"invalid version={rec.version}")
+
                 # Skip metadata
                 metadata_len = utils.read_u32(f)
                 f.read(metadata_len)
@@ -47,6 +51,8 @@ class RecordingFormatCam(recording.RecordingFormat):
 
                     # Read number of frames
                     frame_count = utils.read_u32(ff)
+                    if frame_count <= 57:
+                        raise recording.InvalidFileError(f"invalid frame_count={frame_count}")
                     frame_count -= 57
 
                     for _ in range(frame_count):

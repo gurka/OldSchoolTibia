@@ -16,7 +16,7 @@ class RecordingFormatRec(recording.RecordingFormat):
 
         # The frame data length needs to be divisible by 16
         if len(encrypted_data) % 16 != 0:
-            raise Exception("Frame data length is not divisible by 16")
+            raise recording.InvalidFileError(f"len(encrypted_data)={len(encrypted_data)} is not divisible by 16")
 
         # Decrypt each block (of 16 bytes)
         for block in range(len(encrypted_data) // 16):
@@ -33,7 +33,7 @@ class RecordingFormatRec(recording.RecordingFormat):
         # Check that all padding bytes has this value
         for padding_byte in decrypted_data[-no_padding:]:
             if padding_byte != no_padding:
-                raise recording.InvalidFileException("Invalid padding bytes")
+                raise recording.InvalidFileError("invalid padding bytes")
 
         return decrypted_data[:-no_padding]
 
@@ -42,7 +42,7 @@ class RecordingFormatRec(recording.RecordingFormat):
         # Verify checksum
         calculated_checksum = zlib.adler32(frame.data, 1)
         if calculated_checksum != checksum:
-            raise recording.InvalidFileException("Invalid checksum (calculated: 0x{:08X} read: 0x{:08X})".format(calculated_checksum, checksum))
+            raise recording.InvalidFileError(f"invalid checksum (calculated: 0x{calculated_checksum:08X} read: 0x{checksum:08X})")
 
         # Decrypt frame data
         decrypted_data = b''
@@ -58,7 +58,7 @@ class RecordingFormatRec(recording.RecordingFormat):
         elif rec_version == 518:
             modulo = 6
         else:
-            raise recording.InvalidFileException("Invalid version")
+            raise recording.InvalidFileError("invalid rec_version={rec_version}")
 
         # Decrypt each byte
         for i, byte in enumerate(frame.data):
@@ -92,7 +92,7 @@ class RecordingFormatRec(recording.RecordingFormat):
                 rec_version = utils.read_u16(f)
 
                 if rec_version not in (259, 515, 516, 517, 518):
-                    raise recording.InvalidFileException("'{}': Unsupported version: {}".format(filename, rec_version))
+                    raise recording.InvalidFileError(f"invalid rec_version={rec_version}")
 
                 num_frames = utils.read_u32(f)
                 if rec_version in (515, 516, 517, 518):
@@ -108,24 +108,18 @@ class RecordingFormatRec(recording.RecordingFormat):
                         frame_length = utils.read_u16(f)
 
                     if frame_length <= 0:
-                        raise recording.InvalidFileException("'{}': Invalid frame_length: {} for frame number: {}".format(filename, frame_length, i))
+                        raise recording.InvalidFileError(f"invalid frame_length={frame_length} for frame number={i}")
 
                     frame.time = utils.read_u32(f)
-
                     frame.data = f.read(frame_length)
-                    if len(frame.data) != frame_length:
-                        raise recording.InvalidFileException("'{}': Unexpected end-of-file".format(filename))
 
                     # For file type 2 there is first a simple encryption
                     if rec_version in (515, 516, 517, 518):
                         checksum = utils.read_u32(f)
-                        try:
-                            frame.data = RecordingFormatRec._simple_decrypt(rec_version, checksum, frame)
-                            # Then, file type 517 and later has AES encryption
-                            if rec_version in (517, 518):
-                                frame.data = RecordingFormatRec._aes_decrypt(frame.data)
-                        except Exception as e:
-                            raise recording.InvalidFileException("'{}': {}".format(filename, e))
+                        frame.data = RecordingFormatRec._simple_decrypt(rec_version, checksum, frame)
+                        # Then, file type 517 and later has AES encryption
+                        if rec_version in (517, 518):
+                            frame.data = RecordingFormatRec._aes_decrypt(frame.data)
 
                     rec.frames.append(frame)
 

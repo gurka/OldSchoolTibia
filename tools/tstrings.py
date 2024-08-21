@@ -20,12 +20,13 @@ if __name__ == '__main__':
     filenames = args.FILE
 
     for filename in filenames:
-        if filename.endswith('.rec'):
+        # TODO: why don't we load the file as a Recording and then scan all frame data?
+        if not filename.endswith('.trp'):
             print("ERROR: convert the file to .trp first")
             continue
 
         for string in utils.get_all_strings(filename, min_len, unique, smart):
             if print_filename:
-                print("{}: {}".format(filename, string))
+                print(f"{filename}: {string}")
             else:
                 print(string)

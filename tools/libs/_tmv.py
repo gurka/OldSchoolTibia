@@ -15,7 +15,7 @@ class RecordingFormatTmv(recording.RecordingFormat):
         # Quick check for TibiaMovie2
         with open(filename, 'rb') as f:
             if f.read(4) == b'TMV2':
-                raise recording.InvalidFileException("TibiaMovie2 is not implemented yet")
+                raise recording.InvalidFileError("TibiaMovie2 is not implemented yet")
 
         rec = recording.Recording()
         exception = None
@@ -24,7 +24,7 @@ class RecordingFormatTmv(recording.RecordingFormat):
             with gzip.open(filename, 'rb') as f:
                 format_version = utils.read_u16(f)
                 if format_version != 2:
-                    raise recording.InvalidFileException("Unknown format_version={format_version}")
+                    raise recording.InvalidFileError("invalid format_version={format_version}")
 
                 rec.version = utils.read_u16(f)
                 rec.length = utils.read_u32(f)
@@ -57,7 +57,7 @@ class RecordingFormatTmv(recording.RecordingFormat):
                         pass
 
                     else:
-                        raise recording.InvalidFileException(f'Unknown data_type={data_type}')
+                        raise recording.InvalidFileError(f'invalid data_type={data_type}')
 
         except Exception as e:
             exception = e

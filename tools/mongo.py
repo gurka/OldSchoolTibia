@@ -31,14 +31,7 @@ if __name__ == '__main__':
 
     for filename in filenames:
         # Get info from the recording
-        try:
-            r = recording.load(filename)
-        except recording.InvalidFileException as e:
-            try:
-                r = recording.load(filename, True)
-            except recording.InvalidFileException as e:
-                print(e)
-                continue
+        r = recording.load(filename, True)
 
         # Get file hash
         with open(filename, 'rb') as f:

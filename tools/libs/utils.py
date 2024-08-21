@@ -78,7 +78,7 @@ def print_bytes(data):
         line = ""
 
         # Add hex
-        str_hex = [ "{:02X}".format(byte) for byte in chunk ]
+        str_hex = [f"{byte:02X}" for byte in chunk]
         line += " ".join(str_hex)
 
         if len(str_hex) < 16:
@@ -87,7 +87,7 @@ def print_bytes(data):
 
         # Add ascii
         line += " |"
-        str_ascii = ["{:c}".format(byte) if 31 < byte < 127 else "." for byte in chunk]
+        str_ascii = [f"{byte:c}" if 31 < byte < 127 else "." for byte in chunk]
         line += "".join(str_ascii)
 
         if len(str_ascii) < 16:

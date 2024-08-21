@@ -27,12 +27,12 @@ def convert_file(filename, force, version, overwrite, delete, output_dir):
     try:
         r = recording.load(filename, force)
     except Exception as e:
-        print("'{}': could not read file: {}".format(filename, e))
+        print(f"'{filename}': could not load file: {e}")
         return False
 
     # Abort if no version was provided and we could not guess one
     if version is None and r.version is None:
-        print("'{}': could not guess version and no version explicitly set".format(filename))
+        print(f"'{filename}': could not guess version and no version explicitly set")
         return False
 
     # Overwrite recording version if overwrite set, or if recording version is unset (could not auto detect version)
@@ -44,7 +44,7 @@ def convert_file(filename, force, version, overwrite, delete, output_dir):
         tmp = str(r.version)
         subfolder_dir = os.path.join(output_dir, tmp[0] + '.' + tmp[1:])
         if not os.path.isdir(subfolder_dir):
-            print("'{}' does not exist, creating directory.".format(subfolder_dir))
+            print(f"'{subfolder_dir}' does not exist, creating directory")
             try:
                 os.mkdir(subfolder_dir)
             except FileExistsError:
@@ -58,14 +58,14 @@ def convert_file(filename, force, version, overwrite, delete, output_dir):
         output = os.path.join(output_dir, output_filename)
 
     if os.path.isfile(output):
-        print("'{}': file already exists.".format(output))
+        print(f"'{output}': file already exists")
         return False
 
     try:
         recording.save(r, output)
-        print("'{}': wrote file with version {}".format(output, r.version))
+        print(f"'{output}': wrote file with version {r.version}")
     except Exception as e:
-        print("'{}': could not write file: {}".format(output, e))
+        print(f"'{output}': could not write file: {e}")
         return False
 
     if delete:
@@ -100,15 +100,15 @@ if __name__ == '__main__':
         sys.exit(1)
 
     print("Converting with the following options:")
-    print("\tforce      = {}".format(force))
-    print("\tsubfolder  = {}".format(subfolder))
-    print("\tversion    = {}".format(version if version is not None else "<not set>"))
-    print("\toverwrite  = {}".format(overwrite))
-    print("\tdelete     = {}".format(delete))
-    print("\tOUTPUT_DIR = {}".format(output_dir))
+    print(f"\tforce      = {force}")
+    print(f"\tsubfolder  = {subfolder}")
+    print(f"\tversion    = {version if version is not None else "<not set>"}")
+    print(f"\toverwrite  = {overwrite}")
+    print(f"\tdelete     = {delete}")
+    print(f"\tOUTPUT_DIR = {output_dir}")
 
     if not os.path.isdir(output_dir):
-        print("'{}' does not exist, creating directory.".format(output_dir))
+        print(f"'{output_dir}' does not exist, creating directory")
         os.mkdir(output_dir)
 
     filenames_to_process = []
