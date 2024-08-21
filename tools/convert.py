@@ -23,7 +23,7 @@ def terminate_if_parent_dies(parent_pid):
     thread.start()
 
 
-def convert_file(filename, force, version, overwrite, delete, output_dir):
+def convert_file(filename, force, version, overwrite, rename, delete, output_dir):
     try:
         r = recording.load(filename, force)
     except Exception as e:
@@ -58,8 +58,17 @@ def convert_file(filename, force, version, overwrite, delete, output_dir):
         output = os.path.join(output_dir, output_filename)
 
     if os.path.isfile(output):
-        print(f"'{output}': file already exists")
-        return False
+        if not rename:
+            print(f"'{output}': file already exists")
+            return False
+
+        # Find filename that does not already exist
+        i = 1
+        output_renamed = output
+        while os.path.isfile(output_renamed):
+            output_renamed = f"{output[:-4]}{i}{output[-4:]}"
+            i += 1
+        output = output_renamed
 
     try:
         recording.save(r, output)
@@ -80,6 +89,7 @@ if __name__ == '__main__':
     parser.add_argument("-s", "--subfolder", help="place the output file(s) in sub-folders according to their version.", action='store_true')
     parser.add_argument("-v", "--version", help="use this version if no version was automatically detected. To always set the given version, use -o/--overwrite.", type=int)
     parser.add_argument("-o", "--overwrite", help="always use the version provided with -v/--version, even if a version was automatically detected.", action='store_true')
+    parser.add_argument("-r", "--rename", help="if an output file already exist, append a number to the end of it.", action='store_true')
     parser.add_argument("-d", "--delete", help="delete source file if it was converted successfully.", action='store_true')
     parser.add_argument("-j", "--jobs", help="convert files in parallel using this many workers.", type=int, default=1)
     parser.add_argument("OUTPUT_DIR", help="output files will be placed in this directory.")
@@ -90,6 +100,7 @@ if __name__ == '__main__':
     subfolder = args.subfolder
     version = args.version
     overwrite = args.overwrite
+    rename = args.rename
     delete = args.delete
     jobs = args.jobs
     output_dir = args.OUTPUT_DIR
@@ -104,6 +115,7 @@ if __name__ == '__main__':
     print(f"\tsubfolder  = {subfolder}")
     print(f"\tversion    = {version if version is not None else "<not set>"}")
     print(f"\toverwrite  = {overwrite}")
+    print(f'\trename     = {rename}')
     print(f"\tdelete     = {delete}")
     print(f"\tOUTPUT_DIR = {output_dir}")
 
@@ -122,7 +134,7 @@ if __name__ == '__main__':
     num_converted = 0
     with concurrent.futures.ProcessPoolExecutor(max_workers=jobs, initializer=terminate_if_parent_dies, initargs=(os.getpid(), )) as executor:
         futures = {
-            executor.submit(convert_file, filename, force, version, overwrite, delete, output_dir): filename for filename in filenames_to_process
+            executor.submit(convert_file, filename, force, version, overwrite, rename, delete, output_dir): filename for filename in filenames_to_process
         }
         for future in concurrent.futures.as_completed(futures):
             if future.result():
