@@ -81,12 +81,27 @@ if __name__ == '__main__':
     print(f"player name: {player_creature.contents.Name.decode('latin-1')}")
     print(f"player level: {gamestate.contents.Player.Stats.Level}")
 
+    creatures_seen = set()
+
+    def add_creatures_from_list():
+        cur = gamestate.contents.CreatureList
+        while cur:
+            creatures_seen.add(cur.contents.Name.decode('latin-1'))
+            cur = cast(cur.contents.hh.next, POINTER(tibiarclib.struct_trc_creature))
+
+    add_creatures_from_list()
+
     # Just processes the whole recording
     while not recording.contents.HasReachedEnd:
         ret = tibiarclib.recording_ProcessNextPacket(recording, gamestate)
         if not ret:
             print("Could not process packet")
             sys.exit(1)
+        add_creatures_from_list()
+
+    print("creatures seen:")
+    for creature in creatures_seen:
+        print(creature)
 
     tibiarclib.gamestate_Free(gamestate)
     tibiarclib.version_Free(version)
