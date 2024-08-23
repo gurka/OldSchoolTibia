@@ -7,7 +7,7 @@ from libs import recording, utils
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("-f", "--full", help="dump all frames", action='store_true')
-    parser.add_argument("-n", "--no-force", help="skip files with unexpected end-of-file.", action='store_true')
+    parser.add_argument("-n", "--no-force", help="skip files that can only be partially loaded", action='store_true')
     parser.add_argument("FILE", help="file(s) to dump", nargs='+')
     args = parser.parse_args()
 

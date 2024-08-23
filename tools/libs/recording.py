@@ -74,16 +74,20 @@ def load(filename, force) -> Recording:
 
     Arguments:
         filename: The filename of the Tibia recording to load.
-        force: if True, return a Recording object even if EOF is reached
-               unexpectedly as long as one frame could be read
-               if False, throw an exception if EOF is reached unexpectedly
+        force: if True, print a warning and return a Recording object even
+               if an exception occurs during parsing of the file, as long
+               as at least one frame could be read
     """
 
     for recording_format in recording_formats:
         if filename.lower().endswith(recording_format.extension):
             recording, exception = recording_format.load(filename)
-            if exception is None or (type(exception) is EOFError and force and len(recording.frames) > 0):
+            if exception is None:
                 return recording
+            elif force and len(recording.frames) > 0:
+                print(f"'{filename}': warning, exception was raised during loading: {exception}")
+                return recording
+
             raise exception
 
     raise InvalidFileError("unsupported file")

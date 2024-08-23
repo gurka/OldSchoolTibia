@@ -85,14 +85,14 @@ def convert_file(filename, force, version, overwrite, rename, delete, output_dir
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument("-n", "--no-force", help="skip files with unexpected end-of-file.", action='store_true')
-    parser.add_argument("-s", "--subfolder", help="place the output file(s) in sub-folders according to their version.", action='store_true')
-    parser.add_argument("-v", "--version", help="use this version if no version was automatically detected. To always set the given version, use -o/--overwrite.", type=int)
-    parser.add_argument("-o", "--overwrite", help="always use the version provided with -v/--version, even if a version was automatically detected.", action='store_true')
-    parser.add_argument("-r", "--rename", help="if an output file already exist, append a number to the end of it.", action='store_true')
-    parser.add_argument("-d", "--delete", help="delete source file if it was converted successfully.", action='store_true')
-    parser.add_argument("-j", "--jobs", help="convert files in parallel using this many workers.", type=int, default=1)
-    parser.add_argument("OUTPUT_DIR", help="output files will be placed in this directory.")
+    parser.add_argument("-n", "--no-force", help="skip files that can only be partially loaded", action='store_true')
+    parser.add_argument("-s", "--subfolder", help="place the output file(s) in sub-folders according to their version", action='store_true')
+    parser.add_argument("-v", "--version", help="use this version if no version was automatically detected. To always set the given version, use -o/--overwrite", type=int)
+    parser.add_argument("-o", "--overwrite", help="always use the version provided with -v/--version, even if a version was automatically detected", action='store_true')
+    parser.add_argument("-r", "--rename", help="if an output file already exist, append a number to the end of it", action='store_true')
+    parser.add_argument("-d", "--delete", help="delete source file if it was converted successfully", action='store_true')
+    parser.add_argument("-j", "--jobs", help="convert files in parallel using this many workers", type=int, default=1)
+    parser.add_argument("OUTPUT_DIR", help="output files will be placed in this directory")
     parser.add_argument("FILE", help="file(s) to convert or directory to scan for files", nargs='+')
     args = parser.parse_args()
 
