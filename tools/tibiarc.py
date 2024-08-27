@@ -19,6 +19,9 @@ Notes: the generated python file cannot be named libtibiarc.py because then the 
 import tibiarclib
 
 
+# TODO: move functions below to a libtibiarc/tibiarclib helper file
+
+
 def create_data_reader(filepath):
     with open(filepath, 'rb') as f:
         file_data = f.read()
@@ -28,6 +31,63 @@ def create_data_reader(filepath):
     data_reader.Length = len(file_data)
     data_reader.Data = (c_ubyte * len(file_data)).from_buffer(bytearray(file_data))
     return data_reader
+
+
+def trc_guess_format(recording_file, recording_dr):
+    return tibiarclib.recording_GuessFormat(recording_file, byref(recording_dr))
+
+
+def trc_create_recording(format):
+    # check NULL?
+    return tibiarclib.recording_Create(format)
+
+
+def trc_query_tibia_version(recording, recording_dr):
+    major = c_int(0)
+    minor = c_int(0)
+    preview = c_int(0)
+    ret = tibiarclib.recording_QueryTibiaVersion(recording, byref(recording_dr), byref(major), byref(minor), byref(preview))
+    if not ret:
+        raise Exception("Could not query recording Tibia version")
+    return (major, minor, preview)
+
+
+def trc_load_version(tibia_version, pic_dr, spr_dr, dat_dr):
+    major, minor, preview = tibia_version
+    version = POINTER(tibiarclib.struct_trc_version)()
+    ret = tibiarclib.version_Load(major, minor, preview, byref(pic_dr), byref(spr_dr), byref(dat_dr), byref(version))
+    if not ret:
+        raise Exception("Could not load version")
+    return version
+
+
+def trc_open_recording(recording, recording_dr, version):
+    ret = tibiarclib.recording_Open(recording, byref(recording_dr), version)
+    if not ret:
+        raise Exception("Could not open recording")
+
+
+def trc_create_gamestate(version):
+    # check NULL?
+    return tibiarclib.gamestate_Create(version)
+
+
+def trc_process_next_packet(recording, gamestate):
+    ret = tibiarclib.recording_ProcessNextPacket(recording, gamestate)
+    if not ret:
+        raise Exception("Could not process packet")
+
+
+def trc_free_gamestate(gamestate):
+    tibiarclib.gamestate_Free(gamestate)
+
+
+def trc_free_version(version):
+    tibiarclib.version_Free(version)
+
+
+def trc_free_recording(recording):
+    tibiarclib.recording_Free(recording)
 
 
 if __name__ == '__main__':
@@ -44,34 +104,14 @@ if __name__ == '__main__':
     spr_dr = create_data_reader(os.path.join(data_dir, "Tibia.spr"))
     dat_dr = create_data_reader(os.path.join(data_dir, "Tibia.dat"))
 
-    format = tibiarclib.recording_GuessFormat(recording_file, byref(recording_dr))
+    format = trc_guess_format(recording_file, recording_dr)
+    recording = trc_create_recording(format)
+    tibia_version = trc_query_tibia_version(recording, recording_dr)
+    version = trc_load_version(tibia_version, pic_dr, spr_dr, dat_dr)
+    trc_open_recording(recording, recording_dr, version)
+    gamestate = trc_create_gamestate(version)
 
-    recording = tibiarclib.recording_Create(format)
-
-    major = c_int(0)
-    minor = c_int(0)
-    preview = c_int(0)
-    ret = tibiarclib.recording_QueryTibiaVersion(recording, byref(recording_dr), byref(major), byref(minor), byref(preview))
-    if not ret:
-        print("Could not query recording Tibia version")
-        sys.exit(1)
-
-    version = POINTER(tibiarclib.struct_trc_version)()
-    ret = tibiarclib.version_Load(major, minor, preview, byref(pic_dr), byref(spr_dr), byref(dat_dr), byref(version))
-    if not ret:
-        print("Could not load version / data files")
-        sys.exit(1)
-
-    ret = tibiarclib.recording_Open(recording, byref(recording_dr), version)
-    if not ret:
-        print("Could not open recording")
-        sys.exit(1)
-
-    gamestate = tibiarclib.gamestate_Create(version)
-    ret = tibiarclib.recording_ProcessNextPacket(recording, gamestate)
-    if not ret:
-        print("Could not process first packet")
-        sys.exit(1)
+    trc_process_next_packet(recording, gamestate)
 
     # The first packet _should_ be enough to get the player name
     player_creature = POINTER(tibiarclib.struct_trc_creature)()
@@ -93,16 +133,11 @@ if __name__ == '__main__':
 
     # Just processes the whole recording
     while not recording.contents.HasReachedEnd:
-        ret = tibiarclib.recording_ProcessNextPacket(recording, gamestate)
-        if not ret:
-            print("Could not process packet")
-            sys.exit(1)
+        trc_process_next_packet(recording, gamestate)
         add_creatures_from_list()
 
     print("creatures seen:")
     for creature in creatures_seen:
         print(creature)
 
-    tibiarclib.gamestate_Free(gamestate)
-    tibiarclib.version_Free(version)
-    tibiarclib.recording_Free(recording)
+    trc_free(recording, version, gamestate)
