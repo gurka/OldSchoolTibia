@@ -67,7 +67,7 @@ recording_formats: list[RecordingFormat] = [
 ]
 
 
-def load(filename, force) -> Recording:
+def load(filename: str, force: bool) -> Recording:
     """Loads a Tibia recording
 
     Loads a Tibia recording file and returns a Recording object.
