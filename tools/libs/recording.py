@@ -1,3 +1,6 @@
+from libs import _common
+
+
 class Frame:
     """Represents one frame in a Tibia recording.
 
@@ -82,6 +85,21 @@ def load(filename: str, force: bool) -> Recording:
     for recording_format in recording_formats:
         if filename.lower().endswith(recording_format.extension):
             recording, exception = recording_format.load(filename)
+
+            if recording.version is None:
+                # First try to guess version by finding and parsing the "Your last visit in Tibia:" message
+                recording.version = _common.guess_version(recording.frames)
+
+                if recording.version is None:
+                    # If that failed, and tibiarc is available, try to find version using tibiarc
+                    try:
+                        import tibiarc_helper
+                        recording.version = tibiarc_helper.guess_version(filename)
+                    except ModuleNotFoundError:
+                        print(f"'{filename}': warning, tried to identify Tibia version but tibiarc was not available (see init_tibiarc.sh)")
+                    except Exception as e:
+                        raise e
+
             if exception is None:
                 return recording
             elif force and len(recording.frames) > 0:

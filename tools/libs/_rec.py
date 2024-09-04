@@ -136,7 +136,4 @@ class RecordingFormatRec(recording.RecordingFormat):
             # Merge frames
             rec.frames = _common.merge_frames(rec.frames)
 
-            # Finally, try to guess the version
-            rec.version = _common.guess_version(rec.frames)
-
         return rec, exception

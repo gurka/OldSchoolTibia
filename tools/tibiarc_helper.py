@@ -121,6 +121,21 @@ def process_all(recording_file, tibia_version, data_dir):
                     trc_process_next_packet(recording, gamestate)
 
 
+def guess_version(recording_file):
+    versions_ok = list()
+    for version, version_dir in get_client_versions().items():
+        try:
+            process_all(recording_file, version, version_dir)
+        except Exception as e:
+            continue
+        versions_ok.append(int(version[0]) * 100 + int(version[1]))
+
+    if len(versions_ok) == 0:
+        return None
+
+    return sorted(versions_ok)[-1]
+
+
 if __name__ == '__main__':
     sys.exit(1)
     """
