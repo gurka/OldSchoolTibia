@@ -1,4 +1,4 @@
-from libs import recording
+from oldschooltibia import recording
 
 
 def fix_frame_times(frames):

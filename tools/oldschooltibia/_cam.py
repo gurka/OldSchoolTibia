@@ -1,7 +1,7 @@
 import io
 import lzma
 
-from libs import _common, recording, utils
+from oldschooltibia import _common, recording, utils
 
 
 class RecordingFormatCam(recording.RecordingFormat):

@@ -7,7 +7,7 @@ import sys
 import threading
 import time
 
-from libs import recording
+from oldschooltibia import recording
 
 
 def terminate_if_parent_dies(parent_pid):
@@ -23,9 +23,9 @@ def terminate_if_parent_dies(parent_pid):
     thread.start()
 
 
-def convert_file(filename, force, version, overwrite, rename, delete, output_dir):
+def convert_file(filename, allow_partial, version, overwrite, rename, delete, output_dir):
     try:
-        r = recording.load(filename, force)
+        r = recording.load(filename, allow_partial)
     except Exception as e:
         print(f"'{filename}': could not load file: {e}")
         return False
@@ -85,7 +85,7 @@ def convert_file(filename, force, version, overwrite, rename, delete, output_dir
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument("-n", "--no-force", help="skip files that can only be partially loaded", action='store_true')
+    parser.add_argument("-n", "--no-allow-partial", help="do not allow partial loading of files", action='store_true')
     parser.add_argument("-s", "--subfolder", help="place the output file(s) in sub-folders according to their version", action='store_true')
     parser.add_argument("-v", "--version", help="use this version if no version was automatically detected. To always set the given version, use -o/--overwrite", type=int)
     parser.add_argument("-o", "--overwrite", help="always use the version provided with -v/--version, even if a version was automatically detected", action='store_true')
@@ -96,7 +96,7 @@ if __name__ == '__main__':
     parser.add_argument("FILE", help="file(s) to convert or directory to scan for files", nargs='+')
     args = parser.parse_args()
 
-    force = not args.no_force
+    allow_partial = not args.no_allow_partial
     subfolder = args.subfolder
     version = args.version
     overwrite = args.overwrite
@@ -111,13 +111,13 @@ if __name__ == '__main__':
         sys.exit(1)
 
     print("Converting with the following options:")
-    print(f"\tforce      = {force}")
-    print(f"\tsubfolder  = {subfolder}")
-    print(f"\tversion    = {version if version is not None else "<not set>"}")
-    print(f"\toverwrite  = {overwrite}")
-    print(f'\trename     = {rename}')
-    print(f"\tdelete     = {delete}")
-    print(f"\tOUTPUT_DIR = {output_dir}")
+    print(f"\tallow_partial = {allow_partial}")
+    print(f"\tsubfolder     = {subfolder}")
+    print(f"\tversion       = {version if version is not None else "<not set>"}")
+    print(f"\toverwrite     = {overwrite}")
+    print(f'\trename        = {rename}')
+    print(f"\tdelete        = {delete}")
+    print(f"\tOUTPUT_DIR    = {output_dir}")
 
     if not os.path.isdir(output_dir):
         print(f"'{output_dir}' does not exist, creating directory")
@@ -134,7 +134,7 @@ if __name__ == '__main__':
     num_converted = 0
     with concurrent.futures.ProcessPoolExecutor(max_workers=jobs, initializer=terminate_if_parent_dies, initargs=(os.getpid(), )) as executor:
         futures = {
-            executor.submit(convert_file, filename, force, version, overwrite, rename, delete, output_dir): filename for filename in filenames_to_process
+            executor.submit(convert_file, filename, allow_partial, version, overwrite, rename, delete, output_dir): filename for filename in filenames_to_process
         }
         for future in concurrent.futures.as_completed(futures):
             if future.result():

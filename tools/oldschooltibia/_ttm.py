@@ -1,4 +1,4 @@
-from libs import _common, recording, utils
+from oldschooltibia import _common, recording, utils
 
 
 class RecordingFormatTtm(recording.RecordingFormat):
@@ -17,11 +17,8 @@ class RecordingFormatTtm(recording.RecordingFormat):
 
                 server_name_len = utils.read_u8(f)
                 if server_name_len > 0:
-                    server_name = f.read(server_name_len)
-                    server_port = utils.read_u16(f)
-                    # TODO: remove
-                    print(f'server name: {server_name}')
-                    print(f'server port: {server_port}')
+                    f.read(server_name_len)
+                    utils.read_u16(f)
 
                 rec.length = utils.read_u32(f)
 

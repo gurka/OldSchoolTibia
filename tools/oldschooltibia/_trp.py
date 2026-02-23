@@ -1,6 +1,6 @@
 import os
 
-from libs import recording, utils
+from oldschooltibia import recording, utils
 
 
 class RecordingFormatTrp(recording.RecordingFormat):
@@ -46,10 +46,10 @@ class RecordingFormatTrp(recording.RecordingFormat):
 
     def save(recording, filename):
         if os.path.isfile(filename):
-            raise IOError(f"'{filename}': already exist")
+            raise IOError(f"file already exist")
 
         if recording.version is None:
-            raise Exception(f"'{filename}': recording.version is None")
+            raise Exception(f"recording.version is None")
 
         with open(filename, 'wb') as f:
 

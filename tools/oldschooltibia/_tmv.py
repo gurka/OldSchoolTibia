@@ -1,6 +1,6 @@
 import gzip
 
-from libs import _common, recording, utils
+from oldschooltibia import _common, recording, utils
 
 
 class RecordingFormatTmv(recording.RecordingFormat):

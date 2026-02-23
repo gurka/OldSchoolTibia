@@ -2,7 +2,7 @@ import zlib
 
 from Crypto.Cipher import AES
 
-from libs import recording, _common, utils
+from oldschooltibia import recording, _common, utils
 
 
 class RecordingFormatRec(recording.RecordingFormat):

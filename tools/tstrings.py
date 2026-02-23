@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import argparse
 
-from libs import recording, utils
+from oldschooltibia import recording, utils
 
 
 if __name__ == '__main__':
@@ -10,7 +10,7 @@ if __name__ == '__main__':
     parser.add_argument("-m", "--min-len", help="print sequences of characters that are at least MIN-LEN characters long, instead of the default 4", type=int, default=4)
     parser.add_argument("-u", "--unique", help="do not print duplicate strings. Note: output will be sorted when this option is used", action='store_true')
     parser.add_argument("-s", "--smart", help="replaces certain numbers with X to decrease number of strings, e.g. 'You lose 123 hitpoints' => 'You lose X hitpoints'", action='store_true')
-    parser.add_argument("-n", "--no-force", help="skip files that can only be partially loaded", action='store_true')
+    parser.add_argument("-n", "--no-allow-partial", help="do not allow partial loading of files", action='store_true')
     parser.add_argument("FILE", help="file(s) to search", nargs='+')
     args = parser.parse_args()
 
@@ -18,12 +18,12 @@ if __name__ == '__main__':
     min_len = args.min_len
     unique = args.unique
     smart = args.smart
-    force = not args.no_force
+    allow_partial = not args.no_allow_partial
     filenames = args.FILE
 
     for filename in filenames:
         try:
-            rec = recording.load(filename, force)
+            rec = recording.load(filename, allow_partial)
         except Exception as e:
             print(f"'{filename}': could not load file: {e}")
             continue
