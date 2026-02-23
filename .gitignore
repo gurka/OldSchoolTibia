@@ -400,3 +400,6 @@ FodyWeavers.xsd
 # Extra
 venv/
 *.swp
+*.egg-info/
+*.whl
+*.tar.gz
