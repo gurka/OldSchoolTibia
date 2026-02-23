@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import argparse
 
-from libs import recording
+from libs import recording, utils
 
 
 if __name__ == '__main__':
@@ -18,5 +18,7 @@ if __name__ == '__main__':
             print(f"'{filename}': could not load file: {e}")
             continue
 
-        version = r.version
-        print(f'{filename}: {"UNKNOWN" if version is None else version}')
+        if r.version is None:
+            r.version = utils.guess_version(r.frames)
+
+        print(f'{filename}: {"UNKNOWN" if r.version is None else r.version}')

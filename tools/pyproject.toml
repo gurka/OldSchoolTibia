@@ -1,0 +1,17 @@
+[build-system]
+requires = ["setuptools >= 77.0.3"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "OldSchoolTibia-tools"
+version = "0.1"
+dependencies = [
+    "pycryptodome==3.15.0"
+]
+authors = [
+    {name = "Simon Sandström"}
+]
+license = "MIT"
+
+[project.urls]
+Homapage = "https://github.com/gurka/OldSchoolTibia"

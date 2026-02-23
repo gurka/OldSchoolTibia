@@ -1,4 +1,4 @@
 - Verify that all usage of force=True is: as long as one frame has been parsed, return the Recording, otherwise throw an exception
 - Verify that no specific parsers throw exception with filename in the message (each tool, dump.py, etc, can/will add that)
 - Make force=True default, change --force to --no-force
-- Move certain functions/code from their tool script to utils, e.g. guess_world.py, so that other tools can call them
+- Rename parameter force to allow_partial
