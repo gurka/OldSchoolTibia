@@ -1,4 +1,4 @@
-from libs import _common
+import subprocess
 
 
 class Frame:
@@ -82,31 +82,28 @@ def load(filename: str, force: bool) -> Recording:
                as at least one frame could be read
     """
 
-    for recording_format in recording_formats:
-        if filename.lower().endswith(recording_format.extension):
-            recording, exception = recording_format.load(filename)
-
-            if recording.version is None:
-                # First try to guess version by finding and parsing the "Your last visit in Tibia:" message
-                recording.version = _common.guess_version(recording.frames)
-
-                if recording.version is None:
-                    # If that failed, and tibiarc is available, try to find version using tibiarc
-                    try:
-                        import tibiarc_helper
-                        recording.version = tibiarc_helper.guess_version(filename)
-                    except ModuleNotFoundError:
-                        print(f"'{filename}': warning, tried to identify Tibia version but tibiarc was not available (see init_tibiarc.sh)")
-                    except Exception as e:
-                        raise e
-
-            if exception is None:
-                return recording
-            elif force and len(recording.frames) > 0:
+    # First try loading with the format matching the file extension
+    recording_format = list(filter(lambda recording_format: filename.lower().endswith(recording_format.extension), recording_formats))
+    if len(recording_format) > 0:
+        recording, exception = recording_format[0].load(filename)
+        if exception is None:
+            if force and len(recording.frames) > 0:
                 print(f"'{filename}': warning, exception was raised during loading: {exception}")
-                return recording
+            return recording
+        # Save exception so that we can throw it if loading with other formats also fails
+        original_exception = exception
 
-            raise exception
+    # Try loading with other formats
+    for other_recording_format in filter(lambda recording_format: not filename.lower().endswith(recording_format.extension), recording_formats):
+        recording, exception = other_recording_format.load(filename)
+        if exception is None:
+            print(f"'{filename}': warning, file extension does not match file content, but was loaded successfully as '{other_recording_format.extension}'")
+            if force and len(recording.frames) > 0:
+                print(f"'{filename}': warning, exception was raised during loading: {exception}")
+            return recording
+
+    if original_exception:
+        raise original_exception
 
     raise InvalidFileError("unsupported file")
 
