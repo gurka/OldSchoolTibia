@@ -37,7 +37,7 @@ def merge_frames(frames):
     # 4 (and possibly frame 5, 6, ...)
 
     if len(frames) <= 1:
-        return
+        return frames
 
     # Put together all recording-packet's data into one large list
     recording_frames_data = b''.join([ frame.data for frame in frames ])
