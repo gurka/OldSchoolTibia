@@ -156,18 +156,18 @@ def guess_version(frames):
         (date(2003,  7, 27), 711),
         (date(2003, 12, 16), 720),
         (date(2004,  1, 21), 721),
-        (date(2004,  3,  9), 723), # test server client
+        #(date(2004,  3,  9), 723), # test server client
         (date(2004,  3, 14), 724),
         (date(2004,  5,  4), 726),
         (date(2004,  7, 22), 727),
         (date(2004,  8, 11), 730),
-        (date(2004, 12, 10), 735), # test server client
+        #(date(2004, 12, 10), 735), # test server client
         (date(2004, 12, 14), 740),
         (date(2005,  7,  7), 741),
         (date(2005,  8,  9), 750),
         (date(2005, 11, 16), 755),
         (date(2005, 12, 12), 760),
-        (date(2006,  5,  5), 761), # test server client
+        #(date(2006,  5,  5), 761), # test server client
         (date(2006,  5, 17), 770),
         (date(2006,  5, 31), 771),
         (date(2006,  6,  8), 772),
