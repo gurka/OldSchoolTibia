@@ -7,6 +7,7 @@ from oldschooltibia import _common, recording, utils
 class RecordingFormatCam(recording.RecordingFormat):
 
     extension = '.cam'
+    has_magic = False
 
     def load(filename):
         # This implementation is based on https://github.com/tibiacast/tibiarc/blob/main/lib/formats/cam.c

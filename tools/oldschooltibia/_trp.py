@@ -6,6 +6,7 @@ from oldschooltibia import recording, utils
 class RecordingFormatTrp(recording.RecordingFormat):
 
     extension = '.trp'
+    has_magic = True
 
     def load(filename):
         rec = recording.Recording()

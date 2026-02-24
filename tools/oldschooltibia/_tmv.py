@@ -6,6 +6,7 @@ from oldschooltibia import _common, recording, utils
 class RecordingFormatTmv(recording.RecordingFormat):
 
     extension = '.tmv'
+    has_magic = False
 
     def load(filename):
         # This implementation is based on https://github.com/tulio150/tibia-ttm/blob/master/File%20Formats.txt

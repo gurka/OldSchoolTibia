@@ -8,6 +8,7 @@ from oldschooltibia import recording, _common, utils
 class RecordingFormatRec(recording.RecordingFormat):
 
     extension = '.rec'
+    has_magic = False
 
     def _aes_decrypt(encrypted_data):
         decrypted_data = b''

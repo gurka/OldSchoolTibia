@@ -31,6 +31,7 @@ class RecordingFormat:
     """
 
     extension: str = None
+    has_magic: bool = False
 
     def load(filename: str) -> tuple[Recording, Exception]:
         """Load a Tibia recording.
@@ -92,8 +93,8 @@ def load(filename: str, allow_partial: bool) -> Recording:
         # Save exception so that we can throw it if loading with other formats also fails
         original_exception = exception
 
-    # Try loading with other formats
-    for other_recording_format in filter(lambda recording_format: not filename.lower().endswith(recording_format.extension), recording_formats):
+    # Try loading with other formats (only try formats that have magic identifier)
+    for other_recording_format in filter(lambda recording_format: not filename.lower().endswith(recording_format.extension) and recording_format.has_magic, recording_formats):
         recording, exception = other_recording_format.load(filename)
         if exception is None or (allow_partial and len(recording.frames) > 0):
             print(f"'{filename}': warning, file extension does not match file content, but was loaded successfully as '{other_recording_format.extension}'")
