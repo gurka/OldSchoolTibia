@@ -57,6 +57,7 @@ from oldschooltibia._rec import RecordingFormatRec
 from oldschooltibia._cam import RecordingFormatCam
 from oldschooltibia._ttm import RecordingFormatTtm
 from oldschooltibia._tmv import RecordingFormatTmv
+from oldschooltibia import utils
 
 
 recording_formats: list[RecordingFormat] = [
@@ -68,39 +69,46 @@ recording_formats: list[RecordingFormat] = [
 ]
 
 
-def load(filename: str, allow_partial: bool) -> Recording:
+def _load(filename, allow_partial, recording_format, guess_version):
+    recording, exception = recording_format.load(filename)
+    if exception is None or (allow_partial and len(recording.frames) > 0):
+        if exception is not None:
+            print(f"'{filename}': warning, only partial recording was loaded: {exception}")
+
+        recording.version = utils.guess_version(recording.frames) if recording.version is None and guess_version else recording.version
+        return recording, exception
+
+    return None, exception
+
+
+def load(filename: str, allow_partial: bool = True, guess_version: bool = True) -> Recording:
     """Loads a Tibia recording
 
-    Loads a Tibia recording file and returns a Recording object.
+    Loads a Tibia recording file and returns a Recording object and the format it was loaded with.
 
     Arguments:
         filename: The filename of the Tibia recording to load.
         allow_partial: if True, print a warning and return a Recording object even
                        if an exception occurs during parsing of the file, as long
                        as at least one frame could be read
+        guess_version: if True, try to guess the Tibia version used for this recording,
+                       unless the file already contains the version
     """
 
     # First try loading with the format matching the file extension
-    recording_format = list(filter(lambda recording_format: filename.lower().endswith(recording_format.extension), recording_formats))
-    if len(recording_format) > 0:
-        recording, exception = recording_format[0].load(filename)
-        if exception is None or (allow_partial and len(recording.frames) > 0):
-            if exception and allow_partial and len(recording.frames) > 0:
-                print(f"'{filename}': warning, only partial recording was loaded: {exception}")
-
+    for recording_format in filter(lambda recording_format: filename.lower().endswith(recording_format.extension), recording_formats):
+        recording, exception = _load(filename, allow_partial, recording_format, guess_version)
+        if recording is not None:
             return recording
 
         # Save exception so that we can throw it if loading with other formats also fails
         original_exception = exception
 
     # Try loading with other formats (only try formats that have magic identifier)
-    for other_recording_format in filter(lambda recording_format: not filename.lower().endswith(recording_format.extension) and recording_format.has_magic, recording_formats):
-        recording, exception = other_recording_format.load(filename)
-        if exception is None or (allow_partial and len(recording.frames) > 0):
-            print(f"'{filename}': warning, file extension does not match file content, but was loaded successfully as '{other_recording_format.extension}'")
-            if exception and allow_partial and len(recording.frames) > 0:
-                print(f"'{filename}': warning, only partial recording was loaded: {exception}")
-
+    for recording_format in filter(lambda recording_format: not filename.lower().endswith(recording_format.extension) and recording_format.has_magic, recording_formats):
+        recording, _ = _load(filename, allow_partial, recording_format, guess_version)
+        if recording is not None:
+            print(f"'{filename}': warning, file extension does not match file content, but was loaded successfully as '{recording_format.extension}'")
             return recording
 
     if original_exception:
