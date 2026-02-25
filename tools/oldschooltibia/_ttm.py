@@ -1,4 +1,4 @@
-from oldschooltibia import _common, recording, utils
+from oldschooltibia import recording, _utils
 
 
 class RecordingFormatTtm(recording.RecordingFormat):
@@ -14,30 +14,30 @@ class RecordingFormatTtm(recording.RecordingFormat):
 
         try:
             with open(filename, 'rb') as f:
-                rec.version = utils.read_u16(f)
+                rec.version = _utils.read_u16(f)
 
-                server_name_len = utils.read_u8(f)
+                server_name_len = _utils.read_u8(f)
                 if server_name_len > 0:
                     f.read(server_name_len)
-                    utils.read_u16(f)
+                    _utils.read_u16(f)
 
-                rec.length = utils.read_u32(f)
+                rec.length = _utils.read_u32(f)
 
                 current_timestamp = 0
                 while True:
                     frame = recording.Frame()
                     frame.time = current_timestamp
-                    frame_length = utils.read_u16(f)
+                    frame_length = _utils.read_u16(f)
                     frame.data = f.read(frame_length)
                     rec.frames.append(frame)
 
                     try:
-                        next_packet_type = utils.read_u8(f)
+                        next_packet_type = _utils.read_u8(f)
                     except EOFError:
                         break
 
                     if next_packet_type == 0:
-                        current_timestamp += utils.read_u16(f)
+                        current_timestamp += _utils.read_u16(f)
                     elif next_packet_type == 1:
                         current_timestamp += 1000
                     else:

@@ -2,7 +2,7 @@ import zlib
 
 from Crypto.Cipher import AES
 
-from oldschooltibia import recording, _common, utils
+from oldschooltibia import recording, _utils
 
 
 class RecordingFormatRec(recording.RecordingFormat):
@@ -90,12 +90,12 @@ class RecordingFormatRec(recording.RecordingFormat):
                 # 517 = 7.70 - 7.92
                 # 518 = 8.00 - ?.??
                 # (TibiCAM reads the two values separately, but whatever...)
-                rec_version = utils.read_u16(f)
+                rec_version = _utils.read_u16(f)
 
                 if rec_version not in (259, 515, 516, 517, 518):
                     raise recording.InvalidFileError(f"invalid rec_version={rec_version}")
 
-                num_frames = utils.read_u32(f)
+                num_frames = _utils.read_u32(f)
                 if rec_version in (515, 516, 517, 518):
                     num_frames -= 57  # wtf
 
@@ -104,19 +104,19 @@ class RecordingFormatRec(recording.RecordingFormat):
                     frame = recording.Frame()
 
                     if rec_version == 259:
-                        frame_length = utils.read_u32(f)
+                        frame_length = _utils.read_u32(f)
                     else:
-                        frame_length = utils.read_u16(f)
+                        frame_length = _utils.read_u16(f)
 
                     if frame_length <= 0:
                         raise recording.InvalidFileError(f"invalid frame_length={frame_length} for frame number={i}")
 
-                    frame.time = utils.read_u32(f)
+                    frame.time = _utils.read_u32(f)
                     frame.data = f.read(frame_length)
 
                     # For file type 2 there is first a simple encryption
                     if rec_version in (515, 516, 517, 518):
-                        checksum = utils.read_u32(f)
+                        checksum = _utils.read_u32(f)
                         frame.data = RecordingFormatRec._simple_decrypt(rec_version, checksum, frame)
                         # Then, file type 517 and later has AES encryption
                         if rec_version in (517, 518):
@@ -129,12 +129,12 @@ class RecordingFormatRec(recording.RecordingFormat):
 
         if len(rec.frames) > 0:
             # Fix frame times
-            _common.fix_frame_times(rec.frames)
+            _utils.fix_frame_times(rec.frames)
 
             # Set recording's total time ( = last frame's time)
             rec.length = rec.frames[-1].time
 
             # Merge frames
-            rec.frames = _common.merge_frames(rec.frames)
+            rec.frames = _utils.merge_frames(rec.frames)
 
         return rec, exception

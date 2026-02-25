@@ -1,6 +1,6 @@
 import gzip
 
-from oldschooltibia import _common, recording, utils
+from oldschooltibia import recording, _utils
 
 
 class RecordingFormatTmv(recording.RecordingFormat):
@@ -23,24 +23,24 @@ class RecordingFormatTmv(recording.RecordingFormat):
 
         try:
             with gzip.open(filename, 'rb') as f:
-                format_version = utils.read_u16(f)
+                format_version = _utils.read_u16(f)
                 if format_version != 2:
                     raise recording.InvalidFileError("invalid format_version={format_version}")
 
-                rec.version = utils.read_u16(f)
-                rec.length = utils.read_u32(f)
+                rec.version = _utils.read_u16(f)
+                rec.length = _utils.read_u32(f)
 
                 current_timestamp = 0
                 while True:
                     try:
-                        data_type = utils.read_u8(f)
+                        data_type = _utils.read_u8(f)
                     except EOFError:
                         break
 
                     if data_type == 0:
-                        current_timestamp += utils.read_u32(f)
+                        current_timestamp += _utils.read_u32(f)
 
-                        frame_length = utils.read_u16(f)
+                        frame_length = _utils.read_u16(f)
                         if frame_length == 0:
                             continue
 
@@ -65,12 +65,12 @@ class RecordingFormatTmv(recording.RecordingFormat):
 
         if len(rec.frames) > 0:
             # Fix frame times
-            _common.fix_frame_times(rec.frames)
+            _utils.fix_frame_times(rec.frames)
 
             # Set recording's total time ( = last frame's time)
             rec.length = rec.frames[-1].time
 
             # Merge frames
-            rec.frames = _common.merge_frames(rec.frames)
+            rec.frames = _utils.merge_frames(rec.frames)
 
         return rec, exception
