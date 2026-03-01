@@ -103,7 +103,7 @@ def merge_frames(frames):
     # but the Tibia packet length is 18 (2 + 16). The rest of the Tibia packet data is in frame
     # 4 (and possibly frame 5, 6, ...)
 
-    if len(frames) <= 1:
+    if len(frames) == 0:
         return frames
 
     # Put together all recording-packet's data into one large list

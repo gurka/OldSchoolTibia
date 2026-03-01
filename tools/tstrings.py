@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import argparse
 
-from oldschooltibia import recording, utils
+from oldschooltibia import recording, _utils
 
 
 if __name__ == '__main__':
@@ -28,7 +28,7 @@ if __name__ == '__main__':
             print(f"'{filename}': could not load file: {e}")
             continue
 
-        for string in utils.get_all_strings(rec.frames, min_len, unique, smart):
+        for string in _utils.get_all_strings(rec.frames, min_len, unique, smart):
             if print_filename:
                 print(f"{filename}: {string}")
             else:

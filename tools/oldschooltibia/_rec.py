@@ -76,6 +76,28 @@ class RecordingFormatRec(recording.RecordingFormat):
         return decrypted_data
 
 
+    def _remove_login_server_frames(frames):
+        def is_latin_1(c):
+            return (c >= 32 and c <= 126) or (c >= 160 and c <= 255)
+
+        ret = []
+        for frame in frames:
+            keep = True
+            if len(frame.data) > 3 and frame.data[0] == 0x0a:
+                # This could be either a "enter world" message from the game server
+                # or a "failed login" from the login server
+                # The message from the login server starts with a string
+                string_length = (frame.data[2] << 8) | frame.data[1]
+                if string_length < 1024 and (3 + string_length - 1 < len(frame.data)):
+                    string_raw = frame.data[3:3 + string_length]
+                    if all(is_latin_1(char) for char in string_raw):
+                        keep = False
+
+            if keep:
+                ret.append(frame)
+        return ret
+
+
     def load(filename):
         rec = recording.Recording()
         exception = None
@@ -128,13 +150,22 @@ class RecordingFormatRec(recording.RecordingFormat):
             exception = e
 
         if len(rec.frames) > 0:
-            # Fix frame times
-            _utils.fix_frame_times(rec.frames)
-
             # Set recording's total time ( = last frame's time)
             rec.length = rec.frames[-1].time
 
             # Merge frames
             rec.frames = _utils.merge_frames(rec.frames)
+
+            # TibiCAM had a bug (?) where it incorrectly saved packets from the login server
+            # in the recording, e.g. on failed login attempts. Let's try to detect and remove those
+            # Note: this issue was first found and handled by tibiarc:
+            # https://github.com/tibiacast/tibiarc/blob/9e82d914f92b8995e0fa3d5625e9c76c1126b006/lib/formats/rec.cpp#L204
+            rec.frames = RecordingFormatRec._remove_login_server_frames(rec.frames)
+
+            # Fix frame times
+            _utils.fix_frame_times(rec.frames)
+
+            # Remove empty frames (TODO: do this in merge_frames? maybe it's caused by merge_frames...)
+            rec.frames = [frame for frame in rec.frames if len(frame.data) > 0]
 
         return rec, exception
